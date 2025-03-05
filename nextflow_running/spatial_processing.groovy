@@ -51,7 +51,7 @@ process BCL_TO_FASTQ_INIT {
 	input:
 		path(flowcellDir)
 	output:
-		tuple path("initial_gem_idx.txt"), path(flowcellDir), path('samplesheet.tsv')
+		tuple path("initial_gem_idx.txt"), path(flowcellDir)
     script:
 		"""
 		source /container_src/container_bashrc
@@ -83,12 +83,12 @@ process GENERATE_GEM_WHITELIST {
 	//Take GEM count output from initial Bcl splitting, 
 	//generate a new sample sheet for per cell splitting with bcl-convert
 	label 'amethyst'
-	containerOptions "--bind ${params.src}:/src/,${params.cellranger}:/cellranger/"
+	containerOptions "--bind ${params.src}:/src/,${params.cellranger}:/cellranger/,${params.samplesheet}:/samplesheet.tsv"
   	publishDir "${params.outdir}/samplesheet", mode: 'copy', overwrite: true, pattern: "samplesheet_gemidx.csv"
 	cpus "${params.max_cpus}"
 
 	input:
-		tuple path(gem_idx), path(flowcellDir), path(samplesheet)
+		tuple path(gem_idx), path(flowcellDir)
 	output:
 		tuple path("samplesheet_gemidx.csv"), path(flowcellDir)
 	script:
@@ -99,7 +99,7 @@ process GENERATE_GEM_WHITELIST {
 
     #make gem specific samplesheet
     python /src/splitcells_whitelist_generator.spatial.py \\
-    --samplesheet ${samplesheet} \\
+    --samplesheet /samplesheet.tsv \\
     --gem_idx ${gem_idx} \\
     --prefix ${params.outname} \\
     --gem_cutoff ${params.cell_try} \\
