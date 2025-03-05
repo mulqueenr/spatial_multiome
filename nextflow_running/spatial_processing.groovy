@@ -148,8 +148,7 @@ workflow {
 		| flatten \
 		| collate(2) \
 		| map { a -> tuple(a[0].simpleName, a[0], a[1]) }
-
-		}
+}
 
 		/*
 		| ADAPTER_TRIM \
