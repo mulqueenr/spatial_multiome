@@ -70,7 +70,8 @@ process BCL_TO_FASTQ_INIT {
         --force
 
         #Count GEM ids for barcodes to keep
-        zcat ${params.outname}_S1_R1_001.fastq.gz | \\
+		sample_name = $(cat /samplesheet.tsv | head -n 6 | tail -n 1 | awk -F, '{print \$1}')
+        zcat \${sample_name}_S1_R1_001.fastq.gz | \\
         awk 'OFS="\\t" {if(\$1 ~ /^@/) {split(\$1,a,":");print a[8]}}' | \\
         sort -T . --parallel=${task.cpus} --buffer-size=2G | \\
         uniq -c | sort -k1,1n | awk 'OFS="\\t" {print \$1,\$2}' > initial_gem_idx.txt
