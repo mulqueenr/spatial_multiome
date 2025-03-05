@@ -148,8 +148,8 @@ workflow {
 		| BCL_TO_FASTQ_ON_WHITELIST \
 		| flatten
 		
-		collate(sc_paired_fq, 2) \
-		| map { a -> tuple(a[0].simpleName, a[0], a[1]) } 
+		//collate(sc_paired_fq, 2) \
+		//| map { a -> tuple(a[0].simpleName, a[0], a[1]) } 
 
 
 		}
