@@ -45,14 +45,13 @@ process BCL_TO_FASTQ_INIT {
     //Count GEM indexes and generate a white list for splitting
 	//Assumes Y151;I10;U16;Y151 sequencing cycles unless specified as input parameter
 	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one
-	cpus "${params.max_cpus}"
 	containerOptions "--bind ${params.outdir}/logs:/var/log/bcl-convert"	
 	label 'amethyst'
 
 	input:
 		tuple path(flowcellDir), path(samplesheet)
 	output:
-		tuple path("initial_gem_idx.txt"), path(flowcellDir),  path(samplesheet)
+		tuple path("initial_gem_idx.txt"), path(flowcellDir), path(samplesheet)
     script:
 		"""
 		source /container_src/container_bashrc
@@ -81,8 +80,6 @@ process BCL_TO_FASTQ_INIT {
 process GENERATE_GEM_WHITELIST {
 	//Take GEM count output from initial Bcl splitting, 
 	//generate a new sample sheet for per cell splitting with bcl-convert
-	//NEED TO FIX WHITELIST LOCATION, EITHER COPY OR REQUIRE A POINTER TO WHERE CELLRANGER IS INSTALLED
-	cpus "${params.max_cpus}"
 	label 'amethyst'
 	containerOptions "--bind ${params.src}:/src/,${params.cellranger}:/cellranger/"
   	publishDir "${params.outdir}/samplesheet", mode: 'copy', overwrite: true, pattern: "samplesheet_gemidx.csv"
@@ -111,7 +108,6 @@ process GENERATE_GEM_WHITELIST {
 process BCL_TO_FASTQ_ON_WHITELIST { 
 	//Generate cell level Fastq Files from BCL Files and generated white list
 	//TODO This container should be updated to be in the SIF and not local run
-	cpus "${params.max_cpus}"
 	containerOptions "--bind ${params.src}:/src/,${params.outdir},${params.outdir}/logs:/var/log/bcl-convert"
 	label 'amethyst'
 	input:
@@ -147,8 +143,9 @@ workflow {
 		flowcell = Channel.fromPath(params.flowcellDir)
 		samplesheet = Channel.fromPath(params.samplesheet)
 		
-		(flowcell,samplesheet) \
-		|BCL_TO_FASTQ_INIT //\
+		BCL_TO_FASTQ_INIT((flowcell,samplesheet)) //\
+
+		}
 		/*
 		| GENERATE_GEM_WHITELIST \
 		| BCL_TO_FASTQ_ON_WHITELIST \
@@ -171,7 +168,7 @@ workflow {
 	//AMETHYST CLONE CALLING
 	//METHYLTREE CLONE CALLING
 */
-}
+
 
 /*
 example run
