@@ -140,17 +140,14 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 */
 workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
-		flowcellDir = Channel.fromPath(params.flowcellDir)
 		
-		sc_fq = 
-		BCL_TO_FASTQ_INIT(flowcellDir) \
+		sc_fq = Channel.fromPath(params.flowcellDir) \
+		| BCL_TO_FASTQ_INIT \
 		| GENERATE_GEM_WHITELIST \
 		| BCL_TO_FASTQ_ON_WHITELIST \
-		| flatten
-		
-		//collate(sc_paired_fq, 2) \
-		//| map { a -> tuple(a[0].simpleName, a[0], a[1]) } 
-
+		| flatten \
+		| collate(2) \
+		| map { a -> tuple(a[0].simpleName, a[0], a[1]) }
 
 		}
 
