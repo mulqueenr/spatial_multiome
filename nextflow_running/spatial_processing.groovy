@@ -49,7 +49,7 @@ process BCL_TO_FASTQ_INIT {
 	label 'amethyst'
 
 	input:
-		tuple path(flowcellDir), path(samplesheet)
+		tuple path(flowcellDir), path('${samplesheet}')
 	output:
 		tuple path("initial_gem_idx.txt"), path(flowcellDir), path(samplesheet)
     script:
@@ -142,8 +142,8 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
 		flowcell = Channel.fromPath(params.flowcellDir)
-		flowcell.map { it -> [it,params.samplesheet] } //map as tuple
-		BCL_TO_FASTQ_INIT(flowcell) //\
+		samplesheet = Channel.fromPath(params.samplesheet) //map as tuple
+		[flowcell,samplesheet] | BCL_TO_FASTQ_INIT 
 
 		}
 		/*
