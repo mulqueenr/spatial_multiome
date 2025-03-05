@@ -9,7 +9,7 @@ params.ref_index="/volumes/USR2/Ryan/projects/10x_MET/ref/hg38_bsbolt"
 
 params.sequencing_cycles="Y50;I8N2;N8I16;Y47" // Treat index 2 as UMI just for counting sake
 params.cellranger="/volumes/USR2/Ryan/tools/cellranger-atac-2.1.0/"
-params.max_cpus=99
+params.max_cpus="99"
 
 //output
 params.outname = "250129_spatialdna"
@@ -142,9 +142,8 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
 		flowcell = Channel.fromPath(params.flowcellDir)
-		samplesheet = Channel.fromPath(params.samplesheet)
-		
-		BCL_TO_FASTQ_INIT((flowcell,samplesheet)) //\
+		flowcell.map { it -> [it,params.samplesheet] } //map as tuple
+		BCL_TO_FASTQ_INIT(flowcell) //\
 
 		}
 		/*
