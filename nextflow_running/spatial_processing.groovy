@@ -137,17 +137,15 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 
 		"""
 }
-*/
 workflow {
-	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
-		
-		sc_fq = Channel.fromPath(params.flowcellDir) \
-		| BCL_TO_FASTQ_INIT \
-		| GENERATE_GEM_WHITELIST \
-		| BCL_TO_FASTQ_ON_WHITELIST \
-		| flatten //\
-		//| collate(2) \
-		//| map { a -> tuple(a[0].simpleName, a[0], a[1]) }
+// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS		
+	sc_fq = Channel.fromPath(params.flowcellDir) \
+	| BCL_TO_FASTQ_INIT \
+	| GENERATE_GEM_WHITELIST \
+	| BCL_TO_FASTQ_ON_WHITELIST \
+	| flatten \
+	| collate(2) \
+	| map { a -> tuple(a[0].simpleName, a[0], a[1]) }
 }
 
 		/*
