@@ -49,7 +49,7 @@ process BCL_TO_FASTQ_INIT {
 	label 'amethyst'
 
 	input:
-		tuple path(flowcellDir), path('${samplesheet}')
+		tuple path(flowcellDir), path(samplesheet)
 	output:
 		tuple path("initial_gem_idx.txt"), path(flowcellDir), path(samplesheet)
     script:
