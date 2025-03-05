@@ -77,6 +77,7 @@ process BCL_TO_FASTQ_INIT {
 		"""
 }
 
+/*
 process GENERATE_GEM_WHITELIST {
 	//Take GEM count output from initial Bcl splitting, 
 	//generate a new sample sheet for per cell splitting with bcl-convert
@@ -137,7 +138,7 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 
 		"""
 }
-
+*/
 workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
 		flowcell = Channel.fromPath(params.flowcellDir)
