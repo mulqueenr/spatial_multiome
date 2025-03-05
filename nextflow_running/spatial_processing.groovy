@@ -142,8 +142,8 @@ workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
 		flowcellDir = Channel.fromPath(params.flowcellDir)
 		
-		sc_fq = flowcellDir \
-		| BCL_TO_FASTQ_INIT \
+		sc_fq = 
+		BCL_TO_FASTQ_INIT(flowcellDir) \
 		| GENERATE_GEM_WHITELIST \
 		| BCL_TO_FASTQ_ON_WHITELIST \
 		| flatten
