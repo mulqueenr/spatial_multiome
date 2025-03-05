@@ -51,7 +51,7 @@ process BCL_TO_FASTQ_INIT {
 	input:
 		path(flowcellDir)
 	output:
-		tuple path("initial_gem_idx.txt"), path(flowcellDir), path(samplesheet)
+		tuple path("initial_gem_idx.txt"), path(flowcellDir), path('samplesheet.tsv')
     script:
 		"""
 		source /container_src/container_bashrc
@@ -77,7 +77,6 @@ process BCL_TO_FASTQ_INIT {
 		"""
 }
 
-/*
 process GENERATE_GEM_WHITELIST {
 	//Take GEM count output from initial Bcl splitting, 
 	//generate a new sample sheet for per cell splitting with bcl-convert
@@ -143,14 +142,13 @@ workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
 		flowcellDir = Channel.fromPath(params.flowcellDir)
 		flowcellDir | BCL_TO_FASTQ_INIT
-
-		}
-		/*
 		| GENERATE_GEM_WHITELIST \
 		| BCL_TO_FASTQ_ON_WHITELIST \
 		| flatten //combine R1 and R2 to output
 		| collate(2) \
-		| map { a -> tuple(a[0].simpleName, a[0], a[1]) } \
+		| map { a -> tuple(a[0].simpleName, a[0], a[1]) } 
+		}
+		/*
 		| ADAPTER_TRIM \
 		| ALIGN_BSBOLT \
 		| MARK_DUPLICATES
