@@ -88,7 +88,7 @@ process GENERATE_GEM_WHITELIST {
   	publishDir "${params.outdir}/samplesheet", mode: 'copy', overwrite: true, pattern: "samplesheet_gemidx.csv"
 
 	input:
-		tuple path(gem_idx), path(flowcellDir),  path(samplesheet)
+		tuple path(gem_idx), path(flowcellDir), path(samplesheet)
 	output:
 		tuple path("samplesheet_gemidx.csv"), path(flowcellDir)
 	script:
@@ -115,7 +115,7 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 	containerOptions "--bind ${params.src}:/src/,${params.outdir},${params.outdir}/logs:/var/log/bcl-convert"
 	label 'amethyst'
 	input:
-		tuple path(gem_whitelist),path(flowcellDir)
+		tuple path(gem_whitelist), path(flowcellDir)
 	output:
 		path("*.fastq.gz")
     script:
@@ -141,163 +141,6 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 
 		"""
 }
-
-// TRIM, ALIGN, and DEDUPLICATE READS
-process ADAPTER_TRIM {
-	//TRIM READS OF ADAPTERS AND KNOWN METHYLATED REGIONS (GAP FILLS)
-	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/reports/adapter_trim", mode: 'copy', overwrite: true, pattern: "*.log"
-	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
-	label 'amethyst'
-
-	input:
-		tuple val(cellid),path(read1),path(read2)
-	output:
-		tuple val(cellid),path("*.R1_001.trim.fastq.gz"), path("*.R2_001.trim.fastq.gz")
-		//path("*.trim_report.log"), emit: trim_log
-	script:
-		"""
-		source /container_src/container_bashrc
-
-		cutadapt \\
-		-j 1 \\
-		-a AGATCGGAAGAGCACAC -A CTGTCTCTTATACACAT \\
-		-U 10 -u 10 \\
-		-o ${cellid}.R1_001.trim.fastq.gz \\
-		-p ${cellid}.R2_001.trim.fastq.gz \\
-		$read1 \\
-		$read2 >> ${cellid}.trim_report.log 2>> ${cellid}.trim_report.log
-		"""
-}
-
-process ALIGN_BSBOLT {
-	//ALIGN TRIMMED READS PER CELL
-	//publishDir "${params.outdir}/reports/alignment", mode: 'copy', overwrite: true, pattern: "*.log"
-	cpus "${params.max_cpus}"
-	memory '200 GB'
-	label 'amethyst'
-	containerOptions "--bind ${params.ref_index}:/ref/"
-
-	input:
-		tuple val(cellid),path(read1),path(read2)
-	output:
-		tuple val(cellid),path("*.bam")
-		//path("*.bsbolt.log"), emit: bsbolt_log
-	script:
-		"""
-		source /container_src/container_bashrc
-
-		PYTHONPATH=/container_src/bsbolt python -m bsbolt Align \\
-		-F1 $read1 \\
-		-F2 $read2 \\
-		-t 1 -OT 1 \\
-		-UN -j \\
-		-O ${cellid} \\
-		-DB /ref/ >> ${cellid}.bsbolt.log 2>> ${cellid}.bsbolt.log
-		"""
-}
-
-process MARK_DUPLICATES {
-	//MARK DUPLICATE ALIGNMENTS
-	//publishDir "${params.outdir}/reports/markduplicates", mode: 'copy', overwrite: true, pattern: "*.log"
-	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/sc_bam", mode: 'copy', overwrite: true, pattern: "*.bbrd.bam"
-	label 'amethyst'
-
-	input:
-		tuple val(cellid),path(bam)
-	output:
-		path("*bbrd.bam")
-		//path("*markdup.log"), emit: markdup_log
-	script:
-	"""
-		source /container_src/container_bashrc
-
-		samtools sort -m 10G -n $bam | \\
-		samtools fixmate -p -m - - | \\
-		samtools sort -m 10G | \\
-		samtools markdup --mode s -r -S -s -f ${cellid}.markdup.log - ${cellid}.bbrd.bam
-	"""
-}
-
-process METHYLATION_CALL {
-	//CALL CG METHYLATION
-	//Split bam file by read names
-	//publishDir "${params.outdir}/reports/metcalls", mode: 'copy', overwrite: true, pattern: "*.log"
-	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/sc_metcalls", mode: 'copy', overwrite: true, pattern: "*.h5.gz"
-	containerOptions "--bind ${params.ref_index}:/ref/"
-	label 'amethyst'
-
-	input:
-		tuple val(cellid), path(bam)
-	output:
-		tuple path("*h5")
-		//path("*.metcall.log"), emit: metcall_log
-
-	script:
-	"""
-	source /container_src/container_bashrc
-
-	samtools index $bam
-	PYTHONPATH=/container_src/bsbolt python -m bsbolt CallMethylation \\
-    -I $bam \\
-    -O $cellid \\
-    -ignore-ov -verbose \\
-    -min 1 -t 1 -CG \\
-    -DB /ref/ >> ${cellid}.bsbolt.metcall.log 2>> ${cellid}.bsbolt.metcall.log
-
-	python /src/premethyst_cgmap_to_h5.py \\
-	--input ${cellid}.CG.map.gz
-
-	"""
-}
-
-// CNV PROFILING 
-process CNV_CLONES {
-	//COPYKIT FOR CLONE CALLING BY CNVS
-	//Run CopyKit and output list of bam files by clones
-	cpus "${params.max_cpus}"
-	label 'cnv'
-	//publishDir "${params.outdir}/cnv_calling", mode: 'copy', pattern: "*{tsv,rds}"
-	//publishDir "${params.outdir}/plots/cnv", mode: 'copy', pattern: "*pdf"
-	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
-
-	input:
-		path bams
-	output:
-		path("*.scCNA.tsv")
-	script:
-		"""
-		Rscript /src/copykit_cnv_clones.nf.R \\
-		--input_dir . \\
-		--output_prefix ${params.outname} \\
-		--task_cpus ${task.cpus}
-		"""
-}
-
-
-process AMETHYST_PROCESSING {
-	//INITIATE AMETHYST OBJECT
-	//SET H5 LOCATIONS TO OUTPUT DIRECTORY BECAUSE TEMPORARY WORK DIRECTORY IS NOT PERMANENT
-	//Split bam file by read names
-	//publishDir "${params.outdir}/reports/metcalls", mode: 'copy', overwrite: true, pattern: "*.log"
-	publishDir "${params.outdir}/sc_metcalls", mode: 'copy', overwrite: true, pattern: "*.h5.gz"
-
-	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
-	label 'amethyst'
-    
-	input:
-		tuple val(cellid), path(bam)
-	output:
-		tuple val(${cellid})path("*.metcall.log"), emit: metcall_log
-
-	script:
-	"""
-		source /container_src/container_bashrc
-	"""
-}
-
 
 workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
