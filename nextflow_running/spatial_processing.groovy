@@ -45,11 +45,11 @@ process BCL_TO_FASTQ_INIT {
     //Count GEM indexes and generate a white list for splitting
 	//Assumes Y151;I10;U16;Y151 sequencing cycles unless specified as input parameter
 	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one
-	containerOptions "--bind ${params.outdir}/logs:/var/log/bcl-convert"	
+	containerOptions "--bind ${params.outdir}/logs:/var/log/bcl-convert,${params.samplesheet}:/samplesheet.tsv"	
 	label 'amethyst'
 
 	input:
-		tuple path(flowcellDir), path(samplesheet)
+		path(flowcellDir)
 	output:
 		tuple path("initial_gem_idx.txt"), path(flowcellDir), path(samplesheet)
     script:
@@ -64,7 +64,7 @@ process BCL_TO_FASTQ_INIT {
         --bcl-num-conversion-threads \$task_cpus \\
         --bcl-num-compression-threads \$task_cpus \\
         --bcl-num-decompression-threads \$task_cpus \\
-        --sample-sheet ${samplesheet} \\
+        --sample-sheet /samplesheet.tsv \\
         --no-lane-splitting true \\
         --output-directory . \\
         --force
@@ -142,8 +142,7 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
 		flowcellDir = Channel.fromPath(params.flowcellDir)
-		samplesheet = Channel.fromPath(params.samplesheet) //map as tuple
-		BCL_TO_FASTQ_INIT([flowcellDir,samplesheet]) 
+		flowcellDir | BCL_TO_FASTQ_INIT
 
 		}
 		/*
