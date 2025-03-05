@@ -141,9 +141,9 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 */
 workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
-		flowcell = Channel.fromPath(params.flowcellDir)
+		flowcellDir = Channel.fromPath(params.flowcellDir)
 		samplesheet = Channel.fromPath(params.samplesheet) //map as tuple
-		[flowcell,samplesheet] | BCL_TO_FASTQ_INIT 
+		[flowcellDir,samplesheet] | BCL_TO_FASTQ_INIT 
 
 		}
 		/*
