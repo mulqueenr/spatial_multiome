@@ -99,7 +99,7 @@ process GENERATE_GEM_WHITELIST {
 
     #make gem specific samplesheet
     python /src/splitcells_whitelist_generator.spatial.py \\
-    --samplesheet ${params.samplesheet} \\
+    --samplesheet ${samplesheet} \\
     --gem_idx ${gem_idx} \\
     --prefix ${params.outname} \\
     --gem_cutoff ${params.cell_try} \\
@@ -305,7 +305,8 @@ workflow {
 		samplesheet = Channel.fromPath(params.samplesheet)
 		
 		(flowcell,samplesheet) \
-		|BCL_TO_FASTQ_INIT \
+		|BCL_TO_FASTQ_INIT //\
+		/*
 		| GENERATE_GEM_WHITELIST \
 		| BCL_TO_FASTQ_ON_WHITELIST \
 		| flatten //combine R1 and R2 to output
@@ -314,6 +315,7 @@ workflow {
 		| ADAPTER_TRIM \
 		| ALIGN_BSBOLT \
 		| MARK_DUPLICATES
+		*/
 /*
 	//METHYLATION PROCESSING
 		sc_bams \

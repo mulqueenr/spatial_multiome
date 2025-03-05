@@ -44,10 +44,11 @@ gem_idx_pass=pd.DataFrame()
 gem_idx_pass['index2']=gem_idx.iloc[0:int(args.gem_cutoff)+1]['corrected_idx']
 gem_idx_pass['index2']=[str(Seq(i).reverse_complement()) for i in gem_idx_pass['index2']]
 gem_idx_pass['Sample_ID']=[args.prefix+"_"+i for i in gem_idx_pass['index2']]
-gem_i7_df=[pd.concat([gem_idx_pass],[i7],axis=0) for i7 in i7_idx["index"].to_list()]
-df = pd.concat(gem_i7_df)
+gem_i7_df=[pd.concat([gem_idx_pass],[i7],axis=0) for i7 in i7_idx["index"].to_list()] #replicate column per i7 index
 
-gem_idx_pass= df[['Sample_ID','index','index2']]
+df = pd.concat(gem_i7_df) #concat list
+df.columns=['Sample_ID','index2','index'] #set names
+gem_idx_pass= df.col[['Sample_ID','index','index2']]
 
 with open("samplesheet_gemidx.csv", "w") as f:
     f.write("""[Settings],
