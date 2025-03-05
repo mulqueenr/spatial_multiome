@@ -143,7 +143,7 @@ workflow {
 	// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS
 		flowcellDir = Channel.fromPath(params.flowcellDir)
 		samplesheet = Channel.fromPath(params.samplesheet) //map as tuple
-		[flowcellDir,samplesheet] | BCL_TO_FASTQ_INIT 
+		BCL_TO_FASTQ_INIT([flowcellDir,samplesheet]) 
 
 		}
 		/*
