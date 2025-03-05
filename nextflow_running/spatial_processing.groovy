@@ -146,10 +146,10 @@ workflow {
 		| BCL_TO_FASTQ_INIT \
 		| GENERATE_GEM_WHITELIST \
 		| BCL_TO_FASTQ_ON_WHITELIST \
-		| flatten \ //combine R1 and R2 to output
+		| flatten \
 		| collate(2) \
 		| map { a -> tuple(a[0].simpleName, a[0], a[1]) } 
-		
+
 		}
 
 		/*
