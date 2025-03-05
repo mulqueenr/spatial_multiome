@@ -47,7 +47,7 @@ process BCL_TO_FASTQ_INIT {
 	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one
 	containerOptions "--bind ${params.outdir}/logs:/var/log/bcl-convert,${params.samplesheet}:/samplesheet.tsv"	
 	label 'amethyst'
-
+	cpus "${params.max_cpus}"
 	input:
 		path(flowcellDir)
 	output:
@@ -83,6 +83,7 @@ process GENERATE_GEM_WHITELIST {
 	label 'amethyst'
 	containerOptions "--bind ${params.src}:/src/,${params.cellranger}:/cellranger/"
   	publishDir "${params.outdir}/samplesheet", mode: 'copy', overwrite: true, pattern: "samplesheet_gemidx.csv"
+	cpus "${params.max_cpus}"
 
 	input:
 		tuple path(gem_idx), path(flowcellDir), path(samplesheet)
@@ -110,6 +111,8 @@ process BCL_TO_FASTQ_ON_WHITELIST {
 	//TODO This container should be updated to be in the SIF and not local run
 	containerOptions "--bind ${params.src}:/src/,${params.outdir},${params.outdir}/logs:/var/log/bcl-convert"
 	label 'amethyst'
+	cpus "${params.max_cpus}"
+
 	input:
 		tuple path(gem_whitelist), path(flowcellDir)
 	output:
