@@ -7,17 +7,17 @@ params.flowcellDir = "/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_Curi
 params.src = "/volumes/USR2/Ryan/projects/spatial_wgs/tools/spatial_multiome/src"
 params.ref_index="/volumes/USR2/Ryan/projects/10x_MET/ref/hg38_bsbolt"
 
-params.sequencing_cycles="Y50;I8N2;N8I16;Y47" // Treat index 2 as UMI just for counting sake
+params.sequencing_cycles="Y50;I8N2;U24;Y47" // Treat index 2 as UMI just for counting sake
 params.cellranger="/volumes/USR2/Ryan/tools/cellranger-atac-2.1.0/"
 params.max_cpus="99"
 
 //output
 params.outname = "250129_spatialdna"
-params.outdir = "/volumes/USR2/Ryan/projects/spatial_wgs/250129_First_Experiment"
+params.outdir = "/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment"
 
 //library parameters
 params.cell_try="5000" //Based on expected cell count from library generation
-params.samplesheet="/volumes/USR2/Ryan/projects/spatial_wgs/250129_First_Experiment/DNA_SampleSheet.csv" //Based on expected cell count from library generation
+params.samplesheet="/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment/DNA_SampleSheet.csv" //Based on expected cell count from library generation
 
 log.info """
 
@@ -171,25 +171,4 @@ workflow {
 	//METHYLTREE CLONE CALLING
 */
 
-
-/*
-example run
-source activate #to use more recent version of java
-
-#first need to make the output dir and the log directory for bcl-convert
-outdir="/volumes/USR2/Ryan/projects/10x_MET/experiments/250130_10xmet_231_nf"
-mkdir -p ${outdir}
-mkdir -p ${outdir}/logs
-
-cd /volumes/USR2/Ryan/projects/10x_MET #move to project directory
-git clone https://github.com/mulqueenr/scmet_nf_processing #pull github repo
-
-nextflow ./scmet_nf_processing/nextflow_running/kismet_processing.groovy \
--with-report \
---flowcellDir /volumes/seq/flowcells/MDA/nextseq2000/2024/250127_RM10xMET_RYExome \
---outname 250130_10xMET_231_nftest \
---outdir /volumes/USR2/Ryan/projects/10x_MET/experiments/250130_10xmet_231_nf
---resume
-
-*/
-
+/* See README.md for example run */
