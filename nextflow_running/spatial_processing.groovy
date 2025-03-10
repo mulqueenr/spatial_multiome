@@ -97,7 +97,6 @@ process DNA_CELLRANGER_COUNT {
 		--id=${params.outname} \\
 		--reference=${params.ref} \\
 		--libraries=dna_sample.csv \\
-		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
 		--localmem=300
 		"""
@@ -148,7 +147,6 @@ process RNA_CELLRANGER_COUNT{
 		--id=${params.outname} \\
 		--reference=${params.ref} \\
 		--libraries=rna_sample.csv \\
-		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
 		--localmem=300
 		"""
