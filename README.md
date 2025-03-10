@@ -12,32 +12,41 @@ example run
 source activate #to use more recent version of java
 
 #first need to make the output dir and the log directory for bcl-convert
-flowcellDir="/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_CurioWGS_scalemet"
+DNA_flowcellDir="/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_CurioWGS_scalemet"
+RNA_flowcellDir="/Volumes/seq/flowcells/MDA/nextseq2000/2025/250220_RM_CuioWGS_RNA"
 outdir="/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment"
+outname="dcis41t"
 mkdir -p ${outdir}
 mkdir -p ${outdir}/logs
 
 cd /volumes/USR2/Ryan/projects/spatial_wgs/ #move to project directory
-git clone https://github.com/mulqueenr/scmet_nf_processing #pull github repo
+git clone https://github.com/mulqueenr/spatial_multiome #pull github repo
 
 echo """[Settings],
 CreateFastqForIndexReads,1
-OverrideCycles,Y50;I8N2;U24;Y47
+OverrideCycles,Y50;I8N2;N8U16;Y47
 [Data],
 Sample_ID,index
-dcis41t,ACGAGTAG
-dcis41t,CAATCCCT
-dcis41t,GTCCAGGC
-dcis41t,TGTGTATA""" > ${outdir}/DNA_SampleSheet.csv
+${outname}_dna,ACGAGTAG
+${outname}_dna,CAATCCCT
+${outname}_dna,GTCCAGGC
+${outname}_dna,TGTGTATA""" > ${outdir}/DNA_SampleSheet.csv
+
+echo """Lane,Sample,Index
+*,${outname}_spatial,SI-TT-D6
+*,${outname}_rna,SI-TT-D11""" > ${outdir}/RNA_SimpleSampleSheet.csv
 
 #sequencing_cycles in quotes to avoid newline char
 source activate #just to make sure i'm using a more up-to-date java
+
 nextflow ./tools/spatial_multiome/nextflow_running/spatial_processing.groovy \
 -with-report \
---flowcellDir ${flowcellDir} \
---sequencing_cycles="Y50;I8N2;U24;Y47" \
---outname 250129_spatialdna \
+--dna_flowcellDir ${DNA_flowcellDir} \
+--dna_samplesheet ${outdir}/DNA_SampleSheet.csv \
+--rna_flowcellDir ${RNA_flowcellDir} \
+--rna_samplesheet ${outdir}/RNA_SimpleSampleSheet.csv \
+--outname ${outname} \
 --outdir ${outdir} \
---samplesheet ${outdir}/DNA_SampleSheet.csv \
 -resume
+
 ```

@@ -3,17 +3,22 @@
 nextflow.enable.dsl=2
 
 // Script parameters
-params.flowcellDir = "/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
-params.src = "/volumes/USR2/Ryan/projects/spatial_wgs/tools/spatial_multiome/src"
-params.ref_index="/volumes/USR2/Ryan/projects/10x_MET/ref/hg38_bsbolt"
+// DNA
+params.dna_flowcellDir = "/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
+params.dna_samplesheet = "DNA_SampleSheet.csv"
 
-params.sequencing_cycles="Y50;I8N2;U24;Y47" // Treat index 2 as UMI just for counting sake
-params.cellranger="/volumes/USR2/Ryan/tools/cellranger-atac-2.1.0/"
-params.max_cpus="99"
+// RNA
+params.rna_flowcellDir = "/Volumes/seq/flowcells/MDA/nextseq2000/2025/250220_RM_CuioWGS_RNA" //Sequencing run flowcell dir
+params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
+
+//REF
+params.ref="/volumes/USR2/Ryan/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
+params.cellranger="/volumes/USR2/Ryan/tools/cellranger-arc-2.0.2/cellranger-arc"
+params.max_cpus="50"
 
 //output
 params.outname = "250129_spatialdna"
-params.outdir = "/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment"
+params.outdir = "/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment2"
 
 //library parameters
 params.cell_try="5000" //Based on expected cell count from library generation
@@ -22,153 +27,147 @@ params.samplesheet="/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Ex
 log.info """
 
 		================================================
-		             Spatial Multiome Pipeline v1.0
+		        Spatial Multiome Pipeline v1.1
 		================================================
-		Flowcell Dir : ${params.flowcellDir}
-		Sequencing Cycles: ${params.sequencing_cycles}
-		NF Working Dir : ${workflow.launchDir}
+		____________________DNA_________________________
+		DNA Flowcell Dir : ${params.dna_flowcellDir}
+		DNA Sample Sheet : ${params.dna_samplesheet}
+
+		____________________RNA_________________________
+		RNA Flowcell Dir : ${params.rna_flowcellDir}
+		RNA Sample Sheet : ${params.rna_samplesheet}
+
+		____________________PARAMS______________________
 		Output Directory : ${params.outdir}
 		Output Prefix : ${params.outname}
-
-		Initial sample sheet : ${params.samplesheet}
-		Cellranger ATAC install : ${params.cellranger}
-		Split out Cell ID for N = ${params.cell_try} cells.
-
+		NF Working Dir : ${workflow.launchDir}
+		Cellranger ARC install : ${params.cellranger}
 		Max cpus : ${params.max_cpus}
 		================================================
 
 """.stripIndent()
 
 // BCL TO FASTQ PIPELINE FOR GENERATING SINGLE-CELL FASTQs
-process BCL_TO_FASTQ_INIT { 
+process DNA_BCL_TO_FASTQ { 
 	//Generate Undetermined Fastq Files from BCL Files.
     //Count GEM indexes and generate a white list for splitting
 	//Assumes Y151;I10;U16;Y151 sequencing cycles unless specified as input parameter
 	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one
-	containerOptions "--bind ${params.outdir}/logs:/var/log/bcl-convert,${params.samplesheet}:/samplesheet.tsv"	
-	label 'amethyst'
 	cpus "${params.max_cpus}"
 	input:
-		path(flowcellDir)
+		path(dna_flowcellDir)
+		path(dna_samplesheet)
 	output:
-		tuple path("initial_gem_idx.txt"), path(flowcellDir)
+		path("*fastq.gz")
     script:
 		"""
-		source /container_src/container_bashrc
-
         #Run initial bcl convert and count gem indexes to determine whitelist for splitting
         task_cpus=\$(expr ${task.cpus} / 3)
 
         bcl-convert \\
-        --bcl-input-directory ${flowcellDir} \\
+        --bcl-input-directory ${dna_flowcellDir} \\
         --bcl-num-conversion-threads \$task_cpus \\
         --bcl-num-compression-threads \$task_cpus \\
         --bcl-num-decompression-threads \$task_cpus \\
-        --sample-sheet /samplesheet.tsv \\
+		--bclonly-matched-reads true \\
+        --sample-sheet ${dna_samplesheet} \\
         --no-lane-splitting true \\
         --output-directory . \\
         --force
-
-        #Count GEM ids for barcodes to keep
-		sample_name=\$(cat /samplesheet.tsv | head -n 6 | tail -n 1 | awk -F, \'{print \$1}\')
-
-        zcat \${sample_name}_S1_R1_001.fastq.gz | \\
-        awk 'OFS="\\t" {if(\$1 ~ /^@/) {split(\$1,a,":");print a[8]}}' | \\
-        sort -T . --parallel=${task.cpus} --buffer-size=2G | \\
-        uniq -c | sort -k1,1n | awk 'OFS="\\t" {print \$1,\$2}' > initial_gem_idx.txt
 		"""
 }
 
-process GENERATE_GEM_WHITELIST {
-	//Take GEM count output from initial Bcl splitting, 
-	//generate a new sample sheet for per cell splitting with bcl-convert
-	label 'amethyst'
-	containerOptions "--bind ${params.src}:/src/,${params.cellranger}:/cellranger/,${params.samplesheet}:/samplesheet.tsv"
-  	publishDir "${params.outdir}/samplesheet", mode: 'copy', overwrite: true, pattern: "samplesheet_gemidx.csv"
+process DNA_CELLRANGER {
+	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
 
 	input:
-		tuple path(gem_idx), path(flowcellDir)
+		path(dna_fqDir), stageAs: 'fq/*'
 	output:
-		tuple path("samplesheet_gemidx.csv"), path(flowcellDir)
-	script:
-	"""
-	source /container_src/container_bashrc
+		path("./outs/possorted_bam.bam"), emit: bam
+		path("./outs/*"), emit: outdir
 
-	seq_cycles=\$(echo '${params.sequencing_cycles}' | sed 's/U/I/' ) #convert U to I for final cell output
-
-    #make gem specific samplesheet
-    python /src/splitcells_whitelist_generator.spatial.py \\
-    --samplesheet /samplesheet.tsv \\
-    --gem_idx ${gem_idx} \\
-    --prefix ${params.outname} \\
-    --gem_cutoff ${params.cell_try} \\
-	--sequencing_cycles "\${seq_cycles}" \\
-	--outdir .
-	"""
-}
-
-process BCL_TO_FASTQ_ON_WHITELIST { 
-	//Generate cell level Fastq Files from BCL Files and generated white list
-	//TODO This container should be updated to be in the SIF and not local run
-	containerOptions "--bind ${params.src}:/src/,${params.outdir},${params.outdir}/logs:/var/log/bcl-convert"
-	label 'amethyst'
-	cpus "${params.max_cpus}"
-
-	input:
-		tuple path(gem_whitelist), path(flowcellDir)
-	output:
-		path("*.fastq.gz")
     script:
 		"""
-		source /container_src/container_bashrc
-
-        #Run final bcl convert to split fastq out per cell
-        task_cpus=\$(expr ${task.cpus} / 3)
-        bcl-convert \\
-        --bcl-input-directory ${flowcellDir} \\
-        --bcl-num-conversion-threads \$task_cpus \\
-        --bcl-num-compression-threads \$task_cpus \\
-        --bcl-num-decompression-threads \$task_cpus \\
-		--bcl-only-matched-reads true \\
-        --sample-sheet ${gem_whitelist} \\
-        --no-lane-splitting true \\
-        --output-directory . \\
-        --force
-
-		#rename files so simpleName works better
-		for file in *R1*fastq.gz; do mv \"\$file\" \"\${file/_R1_/.R1_}\"; done
-		for file in *R2*fastq.gz; do mv \"\$file\" \"\${file/_R2_/.R2_}\"; done
-
+		${params.cellranger} count \\
+		--id=${params.outname} \\
+		--reference=${params.ref} \\
+		--fastqs=fq/ \\
+		--sample=${params.outname}_dna \\
+		--chemistry=ARC-v1 \\
+		--localcores=${params.max_cpus} \\
+		--localmem=300
 		"""
 }
-workflow {
-// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS		
-	sc_fq = Channel.fromPath(params.flowcellDir) \
-	| BCL_TO_FASTQ_INIT \
-	| GENERATE_GEM_WHITELIST \
-	| BCL_TO_FASTQ_ON_WHITELIST \
-	| flatten \
-	| collate(2) \
-	| map { a -> tuple(a[0].simpleName, a[0], a[1]) }
+
+process RNA_CELLRANGER_MKFASTQ{
+	//Run cellranger on RNA samples, this works straight from bcl files.
+	// Run mkfastq then run count
+	cpus "${params.max_cpus}"
+
+	input:
+		path(rna_flowcellDir)
+		path(rna_samplesheet)
+	output:
+		path("/*/*fastq.gz"), emit: rna_fq
+
+    script:
+		"""
+		${params.cellranger} mkfastq \\
+		--run=${rna_flowcellDir} \\
+		--id=${params.outname} \\
+		--samplesheet=${rna_samplesheet} \\
+		--localcores=${params.max_cpus} \\
+		--delete-undetermined \\
+		--localmem=300
+		"""
+
 }
 
-		/*
-		| ADAPTER_TRIM \
-		| ALIGN_BSBOLT \
-		| MARK_DUPLICATES
-		*/
-/*
-	//METHYLATION PROCESSING
-		sc_bams \
-		| METHYLATION_CALL
 
-	//CNV CLONE CALLING
-		sc_bams \
-		| CNV_CLONES
+process RNA_CELLRANGER_COUNT{
+	//Run cellranger on RNA samples, this works straight from bcl files.
+	// Run mkfastq then run count
+	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/rna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
 
-	//AMETHYST CLONE CALLING
-	//METHYLTREE CLONE CALLING
-*/
+	input:
+		path(rna_fqDir), stageAs: 'fq/*'
+	output:
+		path("./outs/*"), emit: outdir
+
+    script:
+		"""
+		echo 'fastqs,sample,library_type' > rna_sample.csv
+		echo 'fq/,${params.outname}_rna,Gene Expression' >> rna_sample.csv
+
+		${params.cellranger} count \\
+		--id=${params.outname} \\
+		--reference=${params.ref} \\
+		--libraries=rna_sample.csv \\
+		--sample=${params.outname}_rna \\
+		--chemistry=ARC-v1 \\
+		--localcores=${params.max_cpus} \\
+		--localmem=300
+		"""
+}
+
+workflow {
+// BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS		
+	dna_flowcell_dir = Channel.fromPath(params.dna_flowcellDir)
+	dna_samplesheet = Channel.fromPath(params.dna_sampleheet)
+	rna_flowcell_dir = Channel.fromPath(params.rna_flowcellDir)
+	rna_samplesheet = Channel.fromPath(params.rna_sampleheet)
+
+	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
+	| collect \
+	| DNA_CELLRANGER
+
+	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet) \
+	| collect \
+	| RNA_CELLRANGER
+
+}
 
 /* See README.md for example run */
