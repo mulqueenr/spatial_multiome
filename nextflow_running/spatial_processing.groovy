@@ -148,9 +148,9 @@ workflow {
 	//Generate RNA Fastqs and split
 	rna_fq = \
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet) \
-	.branch { v ->
-        spatial: v.name.contains('spatial')
-        transcriptome: v.name.contains('rna')
+	.branch { it ->
+        spatial: it.name.contains('spatial')
+        transcriptome: it.name.contains('rna')
     }
 	.set { rna_fq_in }
 
