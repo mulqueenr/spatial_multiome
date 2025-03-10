@@ -87,8 +87,8 @@ process RNA_CELLRANGER_MKFASTQ{
 		path(rna_flowcellDir)
 		path(rna_samplesheet)
 	output:
-		path("./*/*rna*fastq.gz"), emit: rna_fq
-		path("./*/*spatial*fastq.gz"), emit: spatial_fq
+		path("./*/*rna*fastq.gz"), emit: transcriptome
+		path("./*/*spatial*fastq.gz"), emit: spatial
 
     script:
 		"""
@@ -146,16 +146,8 @@ workflow {
 	| collect 
 
 	//Generate RNA Fastqs and split
-	rna_fq = \
-	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet) \
-	.branch { it ->
-        spatial: it.name.contains('spatial')
-			return it
-        transcriptome: it.name.contains('rna')
-			return it
-
-    }
-	.set { rna_fq_in }
+	rna_fq_in = \
+	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 
 	rna_fq = rna_fq_in.transcriptome | collect
 	spatial_fq = rna_fq_in.spatial | collect
