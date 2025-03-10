@@ -140,17 +140,27 @@ workflow {
 	rna_flowcell_dir = Channel.fromPath(params.rna_flowcellDir)
 	rna_samplesheet = Channel.fromPath(params.rna_samplesheet)
 
-	dna_fq =\
+	//Generate DNA Fastqs
+	dna_fq = \
 	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
-	| set collect 
+	| collect 
 
+	//Generate RNA Fastqs and split
 	rna_fq = \
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet) \
-	| collect
+	.branch { v ->
+        spatial: v.name.contains('spatial')
+        transcriptome: v.name.contains('rna')
+    }
+	.set { rna_fq_in }
 
+	rna_fq = rna_fq_in.transcriptome | collect
+	spatial_fq = rna_fq_in.spatial | collect
+
+	//Run cellranger on DNA/RNA
 	CELLRANGER_COUNT(dna_fq,rna_fq)
 
-	
+	//Run curio pipeline on spatial
 
 }
 
