@@ -166,7 +166,7 @@ workflow {
 
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet) \
 	| collect \
-	| RNA_CELLRANGER
+	| RNA_CELLRANGER_COUNT
 
 }
 
