@@ -77,7 +77,7 @@ process DNA_BCL_TO_FASTQ {
 		"""
 }
 
-process DNA_CELLRANGER {
+process DNA_CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	cpus "${params.max_cpus}"
 	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
@@ -90,11 +90,13 @@ process DNA_CELLRANGER {
 
     script:
 		"""
+		echo 'fastqs,sample,library_type' > dna_sample.csv
+		echo 'fq/,${params.outname}_dna,Chromatin Accessibility' >> dna_sample.csv
+
 		${params.cellranger} count \\
 		--id=${params.outname} \\
 		--reference=${params.ref} \\
-		--fastqs=fq/ \\
-		--sample=${params.outname}_dna \\
+		--libraries=dna_sample.csv \\
 		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
 		--localmem=300
@@ -146,7 +148,6 @@ process RNA_CELLRANGER_COUNT{
 		--id=${params.outname} \\
 		--reference=${params.ref} \\
 		--libraries=rna_sample.csv \\
-		--sample=${params.outname}_rna \\
 		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
 		--localmem=300
