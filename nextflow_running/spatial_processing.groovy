@@ -156,9 +156,9 @@ process RNA_CELLRANGER_COUNT{
 workflow {
 // BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS		
 	dna_flowcell_dir = Channel.fromPath(params.dna_flowcellDir)
-	dna_samplesheet = Channel.fromPath(params.dna_sampleheet)
+	dna_samplesheet = Channel.fromPath(params.dna_samplesheet)
 	rna_flowcell_dir = Channel.fromPath(params.rna_flowcellDir)
-	rna_samplesheet = Channel.fromPath(params.rna_sampleheet)
+	rna_samplesheet = Channel.fromPath(params.rna_samplesheet)
 
 	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
 	| collect \
