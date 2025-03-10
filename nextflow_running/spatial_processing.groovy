@@ -110,7 +110,7 @@ process RNA_CELLRANGER_MKFASTQ{
 		path(rna_flowcellDir)
 		path(rna_samplesheet)
 	output:
-		path("/*/*fastq.gz"), emit: rna_fq
+		path("./*/*fastq.gz"), emit: rna_fq
 
     script:
 		"""
