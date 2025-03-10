@@ -150,7 +150,10 @@ workflow {
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet) \
 	.branch { it ->
         spatial: it.name.contains('spatial')
+			return it
         transcriptome: it.name.contains('rna')
+			return it
+
     }
 	.set { rna_fq_in }
 
