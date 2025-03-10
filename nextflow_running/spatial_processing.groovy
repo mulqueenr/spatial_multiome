@@ -163,7 +163,7 @@ workflow {
 
 	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
 	| collect \
-	| DNA_CELLRANGER
+	| DNA_CELLRANGER_COUNT
 
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet) \
 	| collect \
