@@ -69,7 +69,7 @@ process DNA_BCL_TO_FASTQ {
         --bcl-num-conversion-threads \$task_cpus \\
         --bcl-num-compression-threads \$task_cpus \\
         --bcl-num-decompression-threads \$task_cpus \\
-		--bclonly-matched-reads true \\
+		--bcl-only-matched-reads true \\
         --sample-sheet ${dna_samplesheet} \\
         --no-lane-splitting true \\
         --output-directory . \\
