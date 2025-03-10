@@ -77,30 +77,6 @@ process DNA_BCL_TO_FASTQ {
 		"""
 }
 
-process DNA_CELLRANGER_COUNT {
-	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
-	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
-
-	input:
-		path(dna_fqDir), stageAs: 'fq/*'
-	output:
-		path("./outs/possorted_bam.bam"), emit: bam
-		path("./outs/*"), emit: outdir
-
-    script:
-		"""
-		echo 'fastqs,sample,library_type' > dna_sample.csv
-		echo 'fq/,${params.outname}_dna,Chromatin Accessibility' >> dna_sample.csv
-
-		${params.cellranger} count \\
-		--id=${params.outname} \\
-		--reference=${params.ref} \\
-		--libraries=dna_sample.csv \\
-		--localcores=${params.max_cpus} \\
-		--localmem=300
-		"""
-}
 
 process RNA_CELLRANGER_MKFASTQ{
 	//Run cellranger on RNA samples, this works straight from bcl files.
@@ -111,7 +87,8 @@ process RNA_CELLRANGER_MKFASTQ{
 		path(rna_flowcellDir)
 		path(rna_samplesheet)
 	output:
-		path("./*/*fastq.gz"), emit: rna_fq
+		path("./*/*rna*fastq.gz"), emit: rna_fq
+		path("./*/*spatial*fastq.gz"), emit: spatial_fq
 
     script:
 		"""
@@ -126,31 +103,35 @@ process RNA_CELLRANGER_MKFASTQ{
 
 }
 
-
-process RNA_CELLRANGER_COUNT{
-	//Run cellranger on RNA samples, this works straight from bcl files.
-	// Run mkfastq then run count
+process CELLRANGER_COUNT {
+	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/rna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
+	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
 
 	input:
-		path(rna_fqDir), stageAs: 'fq/*'
+		path(dna_fqDir), stageAs: 'dna_fq/*'
+		path(rna_fqDir), stageAs: 'rna_fq/*'
+
 	output:
+		path("./outs/possorted_bam.bam"), emit: bam
 		path("./outs/*"), emit: outdir
 
     script:
 		"""
-		echo 'fastqs,sample,library_type' > rna_sample.csv
-		echo 'fq/,${params.outname}_rna,Gene Expression' >> rna_sample.csv
+		echo 'fastqs,sample,library_type' > sample.csv
+		echo 'dna_fq/,${params.outname}_dna,Chromatin Accessibility' >> sample.csv
+		echo 'fq/,${params.outname}_rna,Gene Expression' >> sample.csv
 
 		${params.cellranger} count \\
 		--id=${params.outname} \\
 		--reference=${params.ref} \\
-		--libraries=rna_sample.csv \\
+		--libraries=sample.csv \\
 		--localcores=${params.max_cpus} \\
 		--localmem=300
 		"""
 }
+
+
 
 workflow {
 // BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS		
@@ -159,13 +140,17 @@ workflow {
 	rna_flowcell_dir = Channel.fromPath(params.rna_flowcellDir)
 	rna_samplesheet = Channel.fromPath(params.rna_samplesheet)
 
+	dna_fq =\
 	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
-	| collect \
-	| DNA_CELLRANGER_COUNT
+	| set collect 
 
+	rna_fq = \
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet) \
-	| collect \
-	| RNA_CELLRANGER_COUNT
+	| collect
+
+	CELLRANGER_COUNT(dna_fq,rna_fq)
+
+	
 
 }
 
