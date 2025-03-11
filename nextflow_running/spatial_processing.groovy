@@ -119,8 +119,8 @@ process MERGED_CELLRANGER_COUNT {
     script:
 		"""
 		echo 'fastqs,sample,library_type' > sample.csv
-		echo '${task.workDir}/dna_fq/,${params.outname}_dna,Chromatin Accessibility' >> sample.csv
-		echo '${task.workDir}/rna_fq/,${params.outname}_rna,Gene Expression' >> sample.csv
+		echo "\${PWD}/dna_fq/,${params.outname}_dna,Chromatin Accessibility" >> sample.csv
+		echo "\${PWD}/rna_fq/,${params.outname}_rna,Gene Expression" >> sample.csv
 
 		${params.cellranger} count \\
 		--id=${params.outname} \\
