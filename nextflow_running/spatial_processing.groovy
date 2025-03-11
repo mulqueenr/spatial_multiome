@@ -119,8 +119,8 @@ process CELLRANGER_COUNT {
     script:
 		"""
 		echo 'fastqs,sample,library_type' > sample.csv
-		echo 'dna_fq/,${params.outname}_dna,Chromatin Accessibility' >> sample.csv
-		echo 'rna_fq/,${params.outname}_rna,Gene Expression' >> sample.csv
+		echo '\$PWD/dna_fq/,${params.outname}_dna,Chromatin Accessibility' >> sample.csv
+		echo '\$PWD/rna_fq/,${params.outname}_rna,Gene Expression' >> sample.csv
 
 		${params.cellranger} count \\
 		--id=${params.outname} \\
@@ -153,7 +153,7 @@ workflow {
 	spatial_fq = rna_fq_in.spatial | collect
 
 	//Run cellranger on DNA/RNA
-	CELLRANGER_COUNT(dna_fq,rna_fq)
+	MERGED_CELLRANGER_COUNT(dna_fq,rna_fq)
 
 	//Run curio pipeline on spatial
 	//Output DNA BAM goes into copykit
