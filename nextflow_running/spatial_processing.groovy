@@ -6,6 +6,7 @@ nextflow.enable.dsl=2
 // DNA
 params.dna_flowcellDir = "/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
 params.dna_samplesheet = "DNA_SampleSheet.csv"
+params.spatial_barcode = "/volumes/USR3/ctang4/10X_processing_RNA/Ryan_Trekker/022525_CuioWGS_DCIS41T/U0028_003_BeadBarcodes.txt"
 
 // RNA
 params.rna_flowcellDir = "/Volumes/seq/flowcells/MDA/nextseq2000/2025/250220_RM_CuioWGS_RNA" //Sequencing run flowcell dir
@@ -19,7 +20,7 @@ params.max_cpus="50"
 //output
 params.outname = "250129_spatialdna"
 params.outdir = "/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment2"
-
+params.date = "20250226"
 //library parameters
 params.cell_try="5000" //Based on expected cell count from library generation
 params.samplesheet="/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment/DNA_SampleSheet.csv" //Based on expected cell count from library generation
@@ -131,7 +132,31 @@ process MERGED_CELLRANGER_COUNT {
 		"""
 }
 
+process SPATIAL_CURIO {
+	//Run Curio Trekker Pipeline to generate spatial location
+	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
 
+	input:
+		tuple path(fq_i1),path(fq_i2),path(fq_r1),path(fq_r2)
+		path(spatial_barcode)
+
+	output:
+		path("./outs/possorted_bam.bam"), emit: bam
+		path("./outs/*"), emit: outdir
+
+    script:
+		"""
+		sample_name="${params.outname}_rna"
+		experiment_date="${params.date}"
+
+		echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
+		echo "\${sample_name},\${sample_name},\${experiment_dat},${spatial_barcode},${fq_r1},${fq_r2},\${PWD},TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
+
+		bash /volumes/USR2/Ryan/tools/curiotrekker-v1.1.0/nuclei_locater_toplevel.sh \\
+		samplesheet.trekker.csv
+		"""
+}
 
 workflow {
 // BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS		
@@ -139,6 +164,7 @@ workflow {
 	dna_samplesheet = Channel.fromPath(params.dna_samplesheet)
 	rna_flowcell_dir = Channel.fromPath(params.rna_flowcellDir)
 	rna_samplesheet = Channel.fromPath(params.rna_samplesheet)
+	spatial_barcode = Channel.fromPath(params.spatial_barcode)
 
 	//Generate DNA Fastqs
 	dna_fq = \
@@ -150,12 +176,12 @@ workflow {
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 
 	rna_fq = rna_fq_in.transcriptome | collect
-	spatial_fq = rna_fq_in.spatial | collect
 
 	//Run cellranger on DNA/RNA
 	MERGED_CELLRANGER_COUNT(dna_fq,rna_fq)
 
 	//Run curio pipeline on spatial
+	SPATIAL_CURIO(rna_fq_in.spatial,spatial_barcode)
 	//Output DNA BAM goes into copykit
 	//Output RNA matrix goes into seurat object
 	//Output RNA Spatial goes into metadata for seurat object
