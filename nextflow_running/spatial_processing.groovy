@@ -103,7 +103,7 @@ process RNA_CELLRANGER_MKFASTQ{
 
 }
 
-process CELLRANGER_COUNT {
+process MERGED_CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	cpus "${params.max_cpus}"
 	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
