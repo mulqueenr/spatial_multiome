@@ -120,7 +120,7 @@ process CELLRANGER_COUNT {
 		"""
 		echo 'fastqs,sample,library_type' > sample.csv
 		echo 'dna_fq/,${params.outname}_dna,Chromatin Accessibility' >> sample.csv
-		echo 'fq/,${params.outname}_rna,Gene Expression' >> sample.csv
+		echo 'rna_fq/,${params.outname}_rna,Gene Expression' >> sample.csv
 
 		${params.cellranger} count \\
 		--id=${params.outname} \\
