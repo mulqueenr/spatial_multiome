@@ -87,8 +87,8 @@ process RNA_CELLRANGER_MKFASTQ{
 		path(rna_flowcellDir)
 		path(rna_samplesheet)
 	output:
-		path("./${params.outname}/outs/fastq_path/*/${params.outname}_rna*fastq.gz"), emit: transcriptome
-		path("./${params.outname}/outs/fastq_path/*/${params.outname}_spatial*fastq.gz"), emit: spatial
+		path("${params.outname}/outs/fastq_path/*/${params.outname}_rna*{I1,I2,R1,R2}_001.fastq.gz"), emit: transcriptome
+		path("${params.outname}/outs/fastq_path/*/${params.outname}_spatial*{I1,I2,R1,R2}_001.fastq.gz"), emit: spatial
 
     script:
 		"""
