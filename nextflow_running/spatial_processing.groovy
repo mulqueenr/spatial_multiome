@@ -57,10 +57,9 @@ log.info """
 // BCL TO FASTQ PIPELINE FOR GENERATING SINGLE-CELL FASTQs
 process DNA_BCL_TO_FASTQ { 
 	//Generate Undetermined Fastq Files from BCL Files.
-    //Count GEM indexes and generate a white list for splitting
-	//Assumes Y151;I10;U16;Y151 sequencing cycles unless specified as input parameter
-	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one
+	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one if we add a sif
 	cpus "${params.max_cpus}"
+
 	input:
 		path(dna_flowcellDir)
 		path(dna_samplesheet)
@@ -93,7 +92,7 @@ process DNA_CELLRANGER_COUNT {
 		path(dna_fqDir), stageAs: 'dna_fq/*'
 
 	output:
-		tuple path("./${params.outname}/outs/possorted_bam.bam"), path("./${params.outname}/outs/filtered_peak_bc_matrix/barcodes.tsv") emit: dna_bam
+		tuple path("./${params.outname}/outs/possorted_bam.bam"), path("./${params.outname}/outs/filtered_peak_bc_matrix/barcodes.tsv"), emit: dna_bam
 		path("./${params.outname}/outs/*"), emit: dna_outdir
 
     script:
