@@ -14,7 +14,7 @@ params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
 
 //REF
 params.ref="/volumes/USR2/Ryan/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
-params.src="/volumes/USR2/Ryan/projects/spatial_wgs//tools/spatial_multiome/src"
+params.src="/volumes/USR2/Ryan/projects/spatial_wgs/tools/spatial_multiome/src"
 params.cellranger_arc="/volumes/USR2/Ryan/tools/cellranger-arc-2.0.2/cellranger-arc"
 params.cellranger_atac="/volumes/USR2/Ryan/tools/cellranger-atac-2.1.0/cellranger-atac"
 params.cellranger_rna="/volumes/USR2/Ryan/tools/cellranger-9.0.1/cellranger"
