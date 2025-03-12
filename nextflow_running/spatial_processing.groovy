@@ -245,8 +245,7 @@ process SPATIAL_CURIO {
 
 
 	output:
-		path("./${params.outname}/outs/possorted_bam.bam"), emit: bam
-		path("./${params.outname}/outs/*"), emit: outdir
+		path("*")
 
     script:
 		"""
