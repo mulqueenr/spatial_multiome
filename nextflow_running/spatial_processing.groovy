@@ -241,6 +241,8 @@ process SPATIAL_CURIO {
 	input:
 		tuple path(fq_i1),path(fq_i2),path(fq_r1),path(fq_r2)
 		path(spatial_barcode)
+		path(sc_outdir), stageAs: 'sc_outdir/*'
+
 
 	output:
 		path("./${params.outname}/outs/possorted_bam.bam"), emit: bam
@@ -252,7 +254,7 @@ process SPATIAL_CURIO {
 		experiment_date="${params.date}"
 
 		echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
-		echo "\${sample_name},\${sample_name},\${experiment_date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD},TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
+		echo "\${sample_name},\${sample_name},\${experiment_date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/sc_outdir,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
 
 		bash /volumes/USR2/Ryan/tools/curiotrekker-v1.1.0/nuclei_locater_toplevel.sh \\
 		samplesheet.trekker.csv
@@ -285,7 +287,7 @@ workflow {
 	| RNA_CELLRANGER_COUNT
 
 	//Generate spatial information from curio oligoes
-	SPATIAL_CURIO(rna_fq_in.spatial,spatial_barcode)
+	SPATIAL_CURIO(rna_fq_in.spatial,spatial_barcode,RNA_CELLRANGER_COUNT.outdir)
 
 }
 
