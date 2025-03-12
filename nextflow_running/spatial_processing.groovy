@@ -94,7 +94,7 @@ process RNA_CELLRANGER_MKFASTQ{
 
     script:
 		"""
-		${params.cellranger} mkfastq \\
+		${params.cellranger_rna} mkfastq \\
 		--run=${rna_flowcellDir} \\
 		--id=${params.outname} \\
 		--samplesheet=${rna_samplesheet} \\
