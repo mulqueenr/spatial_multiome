@@ -84,14 +84,14 @@ process DNA_BCL_TO_FASTQ {
 process DNA_CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
+	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true
 
 	input:
 		path(dna_fqDir), stageAs: 'dna_fq/*'
 
 	output:
-		tuple path("./outs/possorted_bam.bam"), path("/.outs/filtered_peak_bc_matrix/barcodes.tsv") emit: dna_bam
-		path("./outs/*"), emit: dna_outdir
+		tuple path("./${params.outname}/outs/possorted_bam.bam"), path("./${params.outname}/outs/filtered_peak_bc_matrix/barcodes.tsv") emit: dna_bam
+		path("./${params.outname}/outs/*"), emit: dna_outdir
 
     script:
 		"""
@@ -99,7 +99,7 @@ process DNA_CELLRANGER_COUNT {
 		--fastqs="\${PWD}/dna_fq/" \\
 		--reference=${params.ref} \\
 		--id=${params.outname} \\
-		--sample=${params.outname}_dna \\
+		--sample=${params.outname} \\
 		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
         --localmem=300
