@@ -14,6 +14,7 @@ params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
 
 //REF
 params.ref="/volumes/USR2/Ryan/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
+params.src="/volumes/USR2/Ryan/projects/spatial_wgs//tools/spatial_multiome/src"
 params.cellranger_arc="/volumes/USR2/Ryan/tools/cellranger-arc-2.0.2/cellranger-arc"
 params.cellranger_atac="/volumes/USR2/Ryan/tools/cellranger-atac-2.1.0/cellranger-atac"
 params.cellranger_rna="/volumes/USR2/Ryan/tools/cellranger-9.0.1/cellranger"
@@ -80,6 +81,85 @@ process DNA_BCL_TO_FASTQ {
 		"""
 }
 
+process DNA_CELLRANGER_COUNT {
+	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
+	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
+
+	input:
+		path(dna_fqDir), stageAs: 'dna_fq/*'
+
+	output:
+		tuple path("./outs/possorted_bam.bam"), path("/.outs/filtered_peak_bc_matrix/barcodes.tsv") emit: dna_bam
+		path("./outs/*"), emit: dna_outdir
+
+    script:
+		"""
+        ${params.cellranger_atac} count \\
+		--fastqs="\${PWD}/dna_fq/" \\
+		--reference=${params.ref} \\
+		--id=${params.outname} \\
+		--sample=${params.outname}_dna \\
+		--chemistry=ARC-v1 \\
+		--localcores=${params.max_cpus} \\
+        --localmem=300
+		"""
+}
+
+process DNA_SPLIT_BAM {
+	//Use timoast sinto to split bam by CB tag
+	//conda install sinto
+
+	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/dna_cellranger/sc_bam", mode: 'copy', overwrite: true 
+
+	input:
+		tuple path(dna_bam),path(dna_barcodes)
+
+	output:
+		path("./sc_bam/*bam"), emit: bam
+
+    script:
+		"""
+		awk -F, OFS="\t" '{print \$1,\$1}' ${dna_barcodes} > cell_id.tsv
+
+		sinto filterbarcodes \\
+		--bam ${bam} \\
+		--cells cell_id.tsv \\
+		-p ${task.cpus} \\
+		--barcodetag "CB" \\
+		--outdir ./sc_bam
+		"""
+}
+
+
+process DNA_COPYKIT {
+	// CNV PROFILING 
+	//COPYKIT FOR CLONE CALLING BY CNVS
+	//Run CopyKit and output list of bam files by clones
+	cpus "${params.max_cpus}"
+	label 'cnv'
+	//publishDir "${params.outdir}/plots/cnv", mode: 'copy', pattern: "*pdf"
+	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
+	publishDir "${params.outdir}/cnv_calling", mode: 'copy', pattern: "*{tsv,rds}"
+	publishDir "${params.outdir}/plots", mode: 'copy', pattern: "*pdf"
+		path("*pdf"), emit: seurat_plots
+
+	input:
+		path bams
+	output:
+		path("*.scCNA.rds"), emit: copykit_rds
+		path("*.scCNA.tsv"), emit: copykit_tsv
+		path("*pdf"), emit: copykit_plots
+	script:
+		"""
+		Rscript /src/copykit_cnv_clones.nf.R \\
+		--input_dir . \\
+		--output_prefix ${params.outname} \\
+		--task_cpus ${task.cpus}
+		"""
+}
+
 process RNA_CELLRANGER_MKFASTQ{
 	//Run cellranger on RNA samples, this works straight from bcl files.
 	// Run mkfastq then run count
@@ -121,38 +201,39 @@ process RNA_CELLRANGER_COUNT {
 		"""
       	${params.cellranger_rna} count \\
 		--fastqs="\${PWD}/rna_fq/" \\
-		--reference=${params.ref} \\
+		--transcriptome=${params.ref} \\
 		--id=${params.outname} \\
+		--create-bam true \\         
 		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
         --localmem=300
 		"""
 }
 
-process DNA_CELLRANGER_COUNT {
-	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
+process RNA_SEURAT_OBJECT_GENERATION {
+	//Make Seurat object from cellranger output
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
+	label 'amethyst' //I havent made a dedicated sif for spatial project yet.
+	publishDir "${params.outdir}/plots", mode: 'copy', overwrite: true, pattern: '*pdf'
+	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
 
 	input:
-		path(dna_fqDir), stageAs: 'dna_fq/*'
+		path(outdir)
 
 	output:
-		path("./outs/possorted_bam.bam"), emit: dna_bam
-		path("./outs/*"), emit: dna_outdir
+		path("*.seuratObj.rds"), emit: rds
+		path("*pdf"), emit: seurat_plots
+
 
     script:
 		"""
-        ${params.cellranger_atac} count \\
-		--fastqs="\${PWD}/dna_fq/" \\
-		--reference=${params.ref} \\
-		--id=${params.outname} \\
-		--sample=${params.outname}_dna \\
-		--chemistry=ARC-v1 \\
-		--localcores=${params.max_cpus} \\
-        --localmem=300
+      	/src/seurat_cellranger_output.R \\
+		--input_dir . \\
+		--out_name ${params.outname}
 		"""
+	
 }
+
 process SPATIAL_CURIO {
 	//Run Curio Trekker Pipeline to generate spatial location
 	cpus "${params.max_cpus}"
@@ -180,30 +261,6 @@ process SPATIAL_CURIO {
 }
 
 
-process DNA_SPLIT_BAM {
-	//Use timoast sinto to split
-	//conda install sinto
-
-	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_cellranger/sc_bam", mode: 'copy', overwrite: true 
-
-	input:
-		tuple path(dna_bam),path(dna_barcodes)
-
-	output:
-		path("./outs/possorted_bam.bam"), emit: bam
-		path("./outs/*"), emit: outdir
-
-    script:
-		"""
-		sinto filterbarcodes \\
-		--bam ${bam} \\
-		--cells \\
-		-p ${task.cpus} \\
-		--barcodetag "CB" \\
-		--outdir ./sc_bam
-		"""
-}
 
 
 workflow {
@@ -214,13 +271,15 @@ workflow {
 	rna_samplesheet = Channel.fromPath(params.rna_samplesheet)
 	spatial_barcode = Channel.fromPath(params.spatial_barcode)
 
-	//Generate DNA Fastqs
+	//Generate copy number calls from DNA data
 	dna_out = \
 	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
 	| collect \
 	| DNA_CELLRANGER_COUNT
 
-	//Generate RNA Fastqs and split
+	dna_out.dna_bam | DNA_SPLIT_BAM | DNA_COPYKIT
+
+	//Generate seurat object from RNA data
 	rna_fq_in = \
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 
@@ -228,13 +287,8 @@ workflow {
 	| collect \
 	| RNA_CELLRANGER_COUNT
 
-	//Run cellranger on DNA/RNA
-
-	//Run curio pipeline on spatial
+	//Generate spatial information from curio oligoes
 	SPATIAL_CURIO(rna_fq_in.spatial,spatial_barcode)
-	//Output DNA BAM goes into copykit
-	//Output RNA matrix goes into seurat object
-	//Output RNA Spatial goes into metadata for seurat object
 
 }
 

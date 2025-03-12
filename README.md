@@ -6,21 +6,21 @@
 cd /volumes/USR2/Ryan/projects/spatial_wgs
 mkdir -p ./tools
 
-git clone https://github.com/mulqueenr/spatial_multiome.git
+git clone https://github.com/mulqueenr/spatial_multiome.git ./tools/spatial_multiome
 
-example run
-source activate #to use more recent version of java
+#example run
 
 #first need to make the output dir and the log directory for bcl-convert
 DNA_flowcellDir="/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_CurioWGS_scalemet"
-RNA_flowcellDir="/Volumes/seq/flowcells/MDA/nextseq2000/2025/250220_RM_CuioWGS_RNA"
+RNA_flowcellDir="/volumes/seq/flowcells/MDA/nextseq2000/2025/250220_RM_CuioWGS_RNA"
+
 outdir="/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment"
 outname="dcis41t"
 mkdir -p ${outdir}
 mkdir -p ${outdir}/logs
 
 cd /volumes/USR2/Ryan/projects/spatial_wgs/ #move to project directory
-git clone https://github.com/mulqueenr/spatial_multiome #pull github repo
+git clone https://github.com/mulqueenr/spatial_multiome.git ./tools/spatial_multiome #pull git repo
 
 echo """[Settings],
 CreateFastqForIndexReads,1
