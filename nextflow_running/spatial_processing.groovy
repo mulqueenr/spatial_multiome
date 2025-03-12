@@ -101,7 +101,6 @@ process DNA_CELLRANGER_COUNT {
 		--fastqs="\${PWD}/dna_fq/" \\
 		--reference=${params.ref} \\
 		--id=${params.outname} \\
-		--sample=${params.outname}_dna \\
 		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
         --localmem=300
