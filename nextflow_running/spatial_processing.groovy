@@ -262,9 +262,6 @@ process SPATIAL_CURIO {
 		"""
 }
 
-
-
-
 workflow {
 // BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS		
 	dna_flowcell_dir = Channel.fromPath(params.dna_flowcellDir)
@@ -285,7 +282,8 @@ workflow {
 	rna_fq_in = \
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 
-	rna_out = rna_fq_in.transcriptome \
+	rna_out = \
+	rna_fq_in.transcriptome \
 	| collect \
 	| RNA_CELLRANGER_COUNT
 
