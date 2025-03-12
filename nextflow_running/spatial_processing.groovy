@@ -145,7 +145,6 @@ process DNA_COPYKIT {
 	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
 	publishDir "${params.outdir}/cnv_calling", mode: 'copy', pattern: "*{tsv,rds}"
 	publishDir "${params.outdir}/plots", mode: 'copy', pattern: "*pdf"
-		path("*pdf"), emit: seurat_plots
 
 	input:
 		path bams
@@ -245,8 +244,8 @@ process SPATIAL_CURIO {
 		path(spatial_barcode)
 
 	output:
-		path("./outs/possorted_bam.bam"), emit: bam
-		path("./outs/*"), emit: outdir
+		path("./${params.outname}/outs/possorted_bam.bam"), emit: bam
+		path("./${params.outname}/outs/*"), emit: outdir
 
     script:
 		"""
