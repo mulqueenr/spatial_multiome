@@ -205,7 +205,7 @@ process RNA_CELLRANGER_COUNT {
 		--create-bam true \\         
 		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
-        --localmem=300
+		--localmem=300
 		"""
 }
 
