@@ -215,18 +215,20 @@ workflow {
 	spatial_barcode = Channel.fromPath(params.spatial_barcode)
 
 	//Generate DNA Fastqs
-	dna_fq = \
+	dna_out = \
 	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
-	| collect 
+	| collect \
+	| DNA_CELLRANGER_COUNT
 
 	//Generate RNA Fastqs and split
 	rna_fq_in = \
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 
-	rna_fq = rna_fq_in.transcriptome | collect
+	rna_out = rna_fq_in.transcriptome \
+	| collect \
+	| RNA_CELLRANGER_COUNT
 
 	//Run cellranger on DNA/RNA
-	MERGED_CELLRANGER_COUNT(dna_fq,rna_fq)
 
 	//Run curio pipeline on spatial
 	SPATIAL_CURIO(rna_fq_in.spatial,spatial_barcode)
