@@ -202,7 +202,7 @@ process RNA_CELLRANGER_COUNT {
 		--fastqs="\${PWD}/rna_fq/" \\
 		--transcriptome=${params.ref} \\
 		--id=${params.outname} \\
-		--create-bam=true \\         
+		--create-bam=true \\
 		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
 		--localmem=300
