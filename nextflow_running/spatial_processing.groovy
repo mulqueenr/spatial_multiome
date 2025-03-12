@@ -14,7 +14,9 @@ params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
 
 //REF
 params.ref="/volumes/USR2/Ryan/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
-params.cellranger="/volumes/USR2/Ryan/tools/cellranger-arc-2.0.2/cellranger-arc"
+params.cellranger_arc="/volumes/USR2/Ryan/tools/cellranger-arc-2.0.2/cellranger-arc"
+params.cellranger_atac="/volumes/USR2/Ryan/tools/cellranger-atac-2.1.0/cellranger-atac"
+params.cellranger_rna="/volumes/USR2/Ryan/tools/cellranger-9.0.1/cellranger"
 params.max_cpus="50"
 
 //output
@@ -78,7 +80,6 @@ process DNA_BCL_TO_FASTQ {
 		"""
 }
 
-
 process RNA_CELLRANGER_MKFASTQ{
 	//Run cellranger on RNA samples, this works straight from bcl files.
 	// Run mkfastq then run count
@@ -104,38 +105,58 @@ process RNA_CELLRANGER_MKFASTQ{
 
 }
 
-process MERGED_CELLRANGER_COUNT {
+process RNA_CELLRANGER_COUNT {
+	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
+	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/rna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
+
+	input:
+		path(rna_fqDir), stageAs: 'rna_fq/*'
+
+	output:
+		tuple path("./outs/possorted_bam.bam"), emit: bam
+		path("./outs/*"), emit: outdir
+
+    script:
+		"""
+      	${params.cellranger_rna} count \\
+		--fastqs="\${PWD}/rna_fq/" \\
+		--reference=${params.ref} \\
+		--id=${params.outname} \\
+		--chemistry=ARC-v1 \\
+		--localcores=${params.max_cpus} \\
+        --localmem=300
+		"""
+}
+
+process DNA_CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	cpus "${params.max_cpus}"
 	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
 
 	input:
 		path(dna_fqDir), stageAs: 'dna_fq/*'
-		path(rna_fqDir), stageAs: 'rna_fq/*'
 
 	output:
-		path("./outs/possorted_bam.bam"), emit: bam
-		path("./outs/*"), emit: outdir
+		tuple path("./outs/possorted_bam.bam"), emit: dna_bam
+		path("./outs/*"), emit: dna_outdir
 
     script:
 		"""
-		echo 'fastqs,sample,library_type' > sample.csv
-		echo "\${PWD}/dna_fq/,${params.outname}_dna,Chromatin Accessibility" >> sample.csv
-		echo "\${PWD}/rna_fq/,${params.outname}_rna,Gene Expression" >> sample.csv
-
-		${params.cellranger} count \\
-		--id=${params.outname} \\
+        ${params.cellranger_atac} count \\
+		--fastqs="\${PWD}/dna_fq/" \\
 		--reference=${params.ref} \\
-		--libraries=sample.csv \\
+		--id=${params.outname} \\
+		--sample=${params.outname}_dna \\
+		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
-		--localmem=300
+        --localmem=300
 		"""
 }
-
 process SPATIAL_CURIO {
 	//Run Curio Trekker Pipeline to generate spatial location
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
+	publishDir "${params.outdir}/spatial", mode: 'copy', overwrite: true
 
 	input:
 		tuple path(fq_i1),path(fq_i2),path(fq_r1),path(fq_r2)
@@ -157,6 +178,33 @@ process SPATIAL_CURIO {
 		samplesheet.trekker.csv
 		"""
 }
+
+
+process DNA_SPLIT_BAM {
+	//Use timoast sinto to split
+	//conda install sinto
+
+	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/dna_cellranger/sc_bam", mode: 'copy', overwrite: true 
+
+	input:
+		tuple path(dna_bam),path(dna_barcodes)
+
+	output:
+		path("./outs/possorted_bam.bam"), emit: bam
+		path("./outs/*"), emit: outdir
+
+    script:
+		"""
+		sinto filterbarcodes \\
+		--bam ${bam} \\
+		--cells \\
+		-p ${task.cpus} \\
+		--barcodetag "CB" \\
+		--outdir ./sc_bam
+		"""
+}
+
 
 workflow {
 // BCL TO FASTQ PIPELINE FOR SPLITTING FASTQS		
