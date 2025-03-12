@@ -45,7 +45,10 @@ log.info """
 		Output Directory : ${params.outdir}
 		Output Prefix : ${params.outname}
 		NF Working Dir : ${workflow.launchDir}
-		Cellranger ARC install : ${params.cellranger}
+		Cellranger ARC install : ${params.cellranger_arc}
+		Cellranger ATAC install : ${params.cellranger_atac}
+		Cellranger RNA install : ${params.cellranger_rna}
+
 		Max cpus : ${params.max_cpus}
 		================================================
 
