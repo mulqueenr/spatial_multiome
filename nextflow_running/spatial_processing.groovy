@@ -188,14 +188,13 @@ process RNA_CELLRANGER_MKFASTQ{
 process RNA_CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/rna_cellranger", mode: 'copy', overwrite: true, pattern: "./outs/*"
+	publishDir "${params.outdir}/rna_cellranger", mode: 'copy', overwrite: true
 
 	input:
 		path(rna_fqDir), stageAs: 'rna_fq/*'
 
 	output:
-		path("./outs/possorted_bam.bam"), emit: bam
-		path("./outs/*"), emit: outdir
+		path("./${params.outname}/outs/*"), emit: outdir
 
     script:
 		"""
