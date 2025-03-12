@@ -114,7 +114,7 @@ process RNA_CELLRANGER_COUNT {
 		path(rna_fqDir), stageAs: 'rna_fq/*'
 
 	output:
-		tuple path("./outs/possorted_bam.bam"), emit: bam
+		path("./outs/possorted_bam.bam"), emit: bam
 		path("./outs/*"), emit: outdir
 
     script:
@@ -138,7 +138,7 @@ process DNA_CELLRANGER_COUNT {
 		path(dna_fqDir), stageAs: 'dna_fq/*'
 
 	output:
-		tuple path("./outs/possorted_bam.bam"), emit: dna_bam
+		path("./outs/possorted_bam.bam"), emit: dna_bam
 		path("./outs/*"), emit: dna_outdir
 
     script:
