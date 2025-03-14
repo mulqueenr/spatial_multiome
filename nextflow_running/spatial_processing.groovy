@@ -250,7 +250,7 @@ process SPATIAL_CURIO {
 		"""
 		sample_name="${params.outname}_rna"
 		experiment_date="${params.date}"
-		cp $(realpath ./sc_outdir/${params.outname}/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix #copy abosolute link to dir
+		cp $(realpath ./sc_outdir/${params.outname}/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
 
 		echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
 		echo "\${sample_name},\${sample_name},\${experiment_date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
