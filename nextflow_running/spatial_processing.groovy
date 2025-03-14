@@ -194,7 +194,7 @@ process RNA_CELLRANGER_COUNT {
 		path(rna_fqDir), stageAs: 'rna_fq/*'
 
 	output:
-		path("./${params.outname}/outs/*"), emit: outdir
+		path("*"), emit: outdir
 
     script:
 		"""
@@ -227,7 +227,7 @@ process RNA_SEURAT_OBJECT_GENERATION {
     script:
 		"""
       	/src/seurat_cellranger_output.R \\
-		--input_dir . \\
+		--input_dir ./${params.outname} \\
 		--out_name ${params.outname}
 		"""
 	
