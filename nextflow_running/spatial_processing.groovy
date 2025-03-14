@@ -253,7 +253,7 @@ process SPATIAL_CURIO {
 		experiment_date="${params.date}"
 
 		echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
-		echo "\${sample_name},\${sample_name},\${experiment_date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/sc_outdir,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
+		echo "\${sample_name},\${sample_name},\${experiment_date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/sc_outdir/${params.outname}/outs,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
 
 		bash /volumes/USR2/Ryan/tools/curiotrekker-v1.1.0/nuclei_locater_toplevel.sh \\
 		samplesheet.trekker.csv
