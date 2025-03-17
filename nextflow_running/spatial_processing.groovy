@@ -16,10 +16,10 @@ params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
 //REF
 params.ref="/home/rmulqueen/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
 params.src="/home/rmulqueen/projects/spatial_wgs/tools/spatial_multiome/src"
-params.cellranger_arc="/home/rmulqueen/tools/cellranger-arc-2.0.2/cellranger-arc/bin/"
-params.cellranger_atac="/home/rmulqueen/tools/cellranger-atac-2.1.0/cellranger-atac/bin/"
-params.cellranger_rna="/home/rmulqueen/tools/cellranger-9.0.1/cellranger/bin/"
-params.max_cpus="50"
+params.cellranger_arc="/home/rmulqueen/tools/cellranger-arc-2.0.2/bin/cellranger-arc"
+params.cellranger_atac="/home/rmulqueen/tools/cellranger-atac-2.1.0/bin/cellranger-atac"
+params.cellranger_rna="/home/rmulqueen/tools/cellranger-9.0.1/bin/cellranger"
+params.max_cpus="200"
 
 //output
 params.outname = "250129_spatialdna"
