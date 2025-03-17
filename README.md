@@ -49,5 +49,7 @@ nextflow ./tools/spatial_multiome/nextflow_running/spatial_processing.groovy \
 --rna_flowcellDir ${RNA_flowcellDir} \
 --rna_samplesheet ${outdir}/RNA_SimpleSampleSheet.csv \
 --outname ${outname} \
---outdir ${outdir}
+--max_cpus 300 \
+--outdir ${outdir} \
+-resume
 ```
