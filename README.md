@@ -1,9 +1,10 @@
 # spatial_multiome
  Nextflow processing of curio+multiome data
+ Running on department server
 
 ## Set up on Geo
 ```bash
-cd /volumes/USR2/Ryan/projects/spatial_wgs
+cd /home/rmulqueen/projects/spatial_wgs/
 mkdir -p ./tools
 
 git clone https://github.com/mulqueenr/spatial_multiome.git ./tools/spatial_multiome
@@ -11,15 +12,15 @@ git clone https://github.com/mulqueenr/spatial_multiome.git ./tools/spatial_mult
 #example run
 
 #first need to make the output dir and the log directory for bcl-convert
-DNA_flowcellDir="/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_CurioWGS_scalemet"
-RNA_flowcellDir="/volumes/seq/flowcells/MDA/nextseq2000/2025/250220_RM_CuioWGS_RNA"
+DNA_flowcellDir="/home/rmulqueen/projects/spatial_wgs/seq/250227_RM_CurioWGS_scalemet"
+RNA_flowcellDir="/home/rmulqueen/projects/spatial_wgs/seq/250220_RM_CuioWGS_RNA"
 
-outdir="/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment"
+outdir="/home/rmulqueen/projects/spatial_wgs/data/250129_First_Experiment"
 outname="dcis41t"
 mkdir -p ${outdir}
 mkdir -p ${outdir}/logs
 
-cd /volumes/USR2/Ryan/projects/spatial_wgs/ #move to project directory
+cd /home/rmulqueen/projects/spatial_wgs/ #move to project directory
 git clone https://github.com/mulqueenr/spatial_multiome.git ./tools/spatial_multiome #pull git repo
 
 echo """[Settings],
@@ -37,6 +38,8 @@ echo """Lane,Sample,Index
 *,${outname}_rna,SI-TT-D11""" > ${outdir}/RNA_SimpleSampleSheet.csv
 
 #sequencing_cycles in quotes to avoid newline char
+#install conda from conda-forge
+
 source activate #just to make sure i'm using a more up-to-date java
 
 nextflow ./tools/spatial_multiome/nextflow_running/spatial_processing.groovy \

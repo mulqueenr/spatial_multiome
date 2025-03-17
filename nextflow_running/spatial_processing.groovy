@@ -4,29 +4,32 @@ nextflow.enable.dsl=2
 
 // Script parameters
 // DNA
-params.dna_flowcellDir = "/volumes/seq/flowcells/MDA/nextseq2000/2025/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
+params.dna_flowcellDir = "/home/rmulqueen/projects/spatial_wgs/seq/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
 params.dna_samplesheet = "DNA_SampleSheet.csv"
-params.spatial_barcode = "/volumes/USR3/ctang4/10X_processing_RNA/Ryan_Trekker/022525_CuioWGS_DCIS41T/U0028_003_BeadBarcodes.txt"
+
+
+
+params.spatial_barcode = "/home/rmulqueen/tools/curiotrekker-v1.1.0/U0028_003_BeadBarcodes.txt"
 
 // RNA
-params.rna_flowcellDir = "/Volumes/seq/flowcells/MDA/nextseq2000/2025/250220_RM_CuioWGS_RNA" //Sequencing run flowcell dir
+params.rna_flowcellDir = "/home/rmulqueen/projects/spatial_wgs/seq/250220_RM_CuioWGS_RNA" //Sequencing run flowcell dir
 params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
 
 //REF
-params.ref="/volumes/USR2/Ryan/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
-params.src="/volumes/USR2/Ryan/projects/spatial_wgs/tools/spatial_multiome/src"
-params.cellranger_arc="/volumes/USR2/Ryan/tools/cellranger-arc-2.0.2/cellranger-arc"
-params.cellranger_atac="/volumes/USR2/Ryan/tools/cellranger-atac-2.1.0/cellranger-atac"
-params.cellranger_rna="/volumes/USR2/Ryan/tools/cellranger-9.0.1/cellranger"
+params.ref="/home/rmulqueen/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
+params.src="/home/rmulqueen/projects/spatial_wgs/tools/spatial_multiome/src"
+params.cellranger_arc="/home/rmulqueen/tools/cellranger-arc-2.0.2/cellranger-arc"
+params.cellranger_atac="/home/rmulqueen/tools/cellranger-atac-2.1.0/cellranger-atac"
+params.cellranger_rna="/home/rmulqueen/tools/cellranger-9.0.1/cellranger"
 params.max_cpus="50"
 
 //output
 params.outname = "250129_spatialdna"
-params.outdir = "/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment2"
+params.outdir = "/home/rmulqueen/projects/spatial_wgs/data/250129_First_Experiment2"
 params.date = "20250226"
 //library parameters
 params.cell_try="5000" //Based on expected cell count from library generation
-params.samplesheet="/volumes/USR2/Ryan/projects/spatial_wgs/data/250129_First_Experiment/DNA_SampleSheet.csv" //Based on expected cell count from library generation
+params.samplesheet="/home/rmulqueen/projects/spatial_wgs/data/250129_First_Experiment/DNA_SampleSheet.csv" //Based on expected cell count from library generation
 
 log.info """
 
