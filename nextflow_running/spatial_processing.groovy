@@ -258,7 +258,7 @@ process SPATIAL_CURIO {
 		echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
 		echo "\${sample_name},\${sample_name},\${experiment_date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
 
-		bash /volumes/USR2/Ryan/tools/curiotrekker-v1.1.0/nuclei_locater_toplevel.sh \\
+		bash /home/rmulqueen/tools/curiotrekker-v1.1.0/nuclei_locater_toplevel.sh \\
 		samplesheet.trekker.csv
 		"""
 }

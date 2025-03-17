@@ -2,6 +2,14 @@
  Nextflow processing of curio+multiome data
  Running on department server
 
+## Requires installs for 
+cellranger-arc
+cellranger-atac
+cellranger
+sinto
+curiotrekker-v1.1.0
+custom SIFs (need to set up public download link still)
+
 ## Set up on Geo
 ```bash
 cd /home/rmulqueen/projects/spatial_wgs/
@@ -36,11 +44,6 @@ ${outname}_dna,TGTGTATA""" > ${outdir}/DNA_SampleSheet.csv
 echo """Lane,Sample,Index
 *,${outname}_spatial,SI-TT-D6
 *,${outname}_rna,SI-TT-D11""" > ${outdir}/RNA_SimpleSampleSheet.csv
-
-#sequencing_cycles in quotes to avoid newline char
-#install conda from conda-forge
-
-source activate #just to make sure i'm using a more up-to-date java
 
 nextflow ./tools/spatial_multiome/nextflow_running/spatial_processing.groovy \
 -with-report \
