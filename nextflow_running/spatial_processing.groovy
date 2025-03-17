@@ -7,8 +7,6 @@ nextflow.enable.dsl=2
 params.dna_flowcellDir = "/home/rmulqueen/projects/spatial_wgs/seq/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
 params.dna_samplesheet = "DNA_SampleSheet.csv"
 
-
-
 params.spatial_barcode = "/home/rmulqueen/tools/curiotrekker-v1.1.0/U0028_003_BeadBarcodes.txt"
 
 // RNA
@@ -62,6 +60,8 @@ process DNA_BCL_TO_FASTQ {
 	//Generate Undetermined Fastq Files from BCL Files.
 	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one if we add a sif
 	cpus "${params.max_cpus}"
+	containerOptions "--bind ${params.outdir}/logs:/var/log/bcl-convert"	
+	label 'amethyst'
 
 	input:
 		path(dna_flowcellDir)
