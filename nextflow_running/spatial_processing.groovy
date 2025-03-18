@@ -140,7 +140,6 @@ process DNA_SPLIT_BAM {
 
 process DNA_PROJECT_COMPLEXITY {
 	//Use picard tools to project library complexity
-
 	cpus "${params.max_cpus}"
 	publishDir "${params.outdir}/dna_cellranger/sc_bam_dedup", mode: 'copy', overwrite: true, pattern: "*rmdup.bam"
 	publishDir "${params.outdir}/reports/dna/complexity", mode: 'copy', overwrite: true , pattern: "*metrics.txt"
@@ -156,10 +155,10 @@ process DNA_PROJECT_COMPLEXITY {
 
     script:
 		"""
-		samtools sort -T . -n -o - $bam \\
-		| samtools fixmate -m - - \\
-		| samtools sort -T . -o - - \\
-		| samtools markdup -s - ${bam.simpleName}.rmdup.bam 2> ${bam.simpleName}.rmdup.stats.txt
+		samtools sort -T . -n -o - ${bam} | \\
+		samtools fixmate -m - - | \\
+		samtools sort -T . -o - - | \\
+		samtools markdup -s - ${bam.simpleName}.rmdup.bam 2> ${bam.simpleName}.rmdup.stats.txt
 
 		java -jar ~/tools/picard.jar \\
 		EstimateLibraryComplexity \\
@@ -303,18 +302,19 @@ workflow {
 	rna_samplesheet = Channel.fromPath(params.rna_samplesheet)
 	spatial_barcode = Channel.fromPath(params.spatial_barcode)
 
-	//Generate copy number calls from DNA data
-	dna_out = \
+//Generate copy number calls from DNA data
 	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
 	| collect \
 	| DNA_CELLRANGER_COUNT
 
-	dna_out.dna_bam \
+	DNA_CELLRANGER_COUNT.dna_bam \
 	| DNA_SPLIT_BAM \
-	| DNA_PROJECT_COMPLEXITY \
-	| .bam_rmdup \
+	| DNA_PROJECT_COMPLEXITY
+
+	DNA_PROJECT_COMPLEXITY.bam_rmdup \
 	| collect \
 	| DNA_COPYKIT
+
 /*
 	//Generate seurat object from RNA data
 	rna_fq_in = \
