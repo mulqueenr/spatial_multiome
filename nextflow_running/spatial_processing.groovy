@@ -100,14 +100,15 @@ process DNA_CELLRANGER_COUNT {
 
     script:
 		"""
-        ${params.cellranger_atac} count \\
+        ${params.cellranger_arc} count \\
 		--fastqs="\${PWD}/dna_fq/" \\
 		--reference=${params.ref} \\
 		--id=${params.outname} \\
-		--chemistry=ARC-v1 \\
 		--localcores=${params.max_cpus} \\
         --localmem=300
 		"""
+		//--chemistry=ARC-v1 \\
+
 }
 
 process DNA_SPLIT_BAM {
