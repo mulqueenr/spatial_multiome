@@ -143,7 +143,8 @@ process DNA_PROJECT_COMPLEXITY {
 
 	cpus "${params.max_cpus}"
 	publishDir "${params.outdir}/dna_cellranger/sc_bam_dedup", mode: 'copy', overwrite: true, pattern: "*rmdup.bam"
-	publishDir "${params.outdir}/reports/dna_complexity", mode: 'copy', overwrite: true , pattern: "*metrics.txt"
+	publishDir "${params.outdir}/reports/dna/complexity", mode: 'copy', overwrite: true , pattern: "*metrics.txt"
+	publishDir "${params.outdir}/reports/dna/rmdup", mode: 'copy', overwrite: true , pattern: "*rmdup.stats.txt"
 
 	input:
 		path(bam)
@@ -151,19 +152,20 @@ process DNA_PROJECT_COMPLEXITY {
 	output:
 		path("*rmdup.bam"), emit: bam_rmdup
 		path("*complex_metrics.txt"), emit: complexity_metrics
+		path("*rmdup.stats.txt"), emit: complexity_metrics
 
     script:
 		"""
-		samtools sort -T . -n -o - $1 \\
+		samtools sort -T . -n -o - $bam \\
 		| samtools fixmate -m - - \\
 		| samtools sort -T . -o - - \\
-		| samtools markdup -s - ${1::-4}.rmdup.bam 2> ${1::-4}.rmdup.stats.txt
+		| samtools markdup -s - ${bam.simpleName}.rmdup.bam 2> ${bam.simpleName}.rmdup.stats.txt
 
 		java -jar ~/tools/picard.jar \\
 		EstimateLibraryComplexity \\
 		MAX_OPTICAL_DUPLICATE_SET_SIZE=-1 \\
-		I=${dna_bam.simpleName}.rmdup.bam \\
-		O=${dna_bam.simpleName}.complex_metrics.txt
+		I=${bam.simpleName}.rmdup.bam \\
+		O=${bam.simpleName}.complex_metrics.txt
 		"""
 }
 
