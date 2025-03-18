@@ -100,14 +100,15 @@ process DNA_CELLRANGER_COUNT {
 
     script:
 		"""
-        ${params.cellranger_arc} count \\
+        ${params.cellranger_atac} count \\
 		--fastqs="\${PWD}/dna_fq/" \\
 		--reference=${params.ref} \\
 		--id=${params.outname} \\
 		--localcores=${params.max_cpus} \\
+		--chemistry=ARC-v1 \\
         --localmem=300
 		"""
-		//--chemistry=ARC-v1 \\
+		// \\
 
 }
 
@@ -134,6 +135,32 @@ process DNA_SPLIT_BAM {
 		-p ${task.cpus} \\
 		--barcodetag "CB" \\
 		--outdir ./sc_bam
+		"""
+}
+
+
+process DNA_PROJECT_COMPLEXITY {
+	//Use picard tools to project library complexity
+
+	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/dna_cellranger/sc_bam", mode: 'copy', overwrite: true 
+
+	input:
+		tuple path(dna_bam),path(dna_barcodes)
+
+	output:
+		path("./sc_bam/*bam"), emit: bam
+
+    script:
+		"""
+		samtools sort -T . -n -o - $1 \\
+		| samtools fixmate -m - - \\
+		| samtools sort -T . -o - - \\
+		| samtools markdup -s - ${1::-4}.rmdup.bam 2> ${1::-4}.rmdup.stats.txt
+
+java -jar /volumes/seq/code/3rd_party/picard/picard-2.20.4/picard.jar EstimateLibraryComplexity MAX_OPTICAL_DUPLICATE_SET_SIZE=-1 I=${1::-4}.rmdup.bam O=${1::-4}.complex_metrics.txt
+
+		java -jar ~/tools/picard.jar EstimateLibraryComplexity 
 		"""
 }
 
@@ -278,7 +305,8 @@ workflow {
 	| collect \
 	| DNA_CELLRANGER_COUNT
 
-	dna_out.dna_bam | DNA_SPLIT_BAM | DNA_COPYKIT
+	dna_out.dna_bam | DNA_SPLIT_BAM 
+	//| DNA_COPYKIT
 /*
 	//Generate seurat object from RNA data
 	rna_fq_in = \
