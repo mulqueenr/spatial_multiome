@@ -279,7 +279,7 @@ workflow {
 	| DNA_CELLRANGER_COUNT
 
 	dna_out.dna_bam | DNA_SPLIT_BAM | DNA_COPYKIT
-
+/*
 	//Generate seurat object from RNA data
 	rna_fq_in = \
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
@@ -293,7 +293,7 @@ workflow {
 
 	//Generate spatial information from curio oligoes
 	SPATIAL_CURIO(rna_fq_in.spatial,spatial_barcode,rna_out.outdir)
-
+*/
 }
 
 /* See README.md for example run */

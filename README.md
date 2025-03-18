@@ -31,9 +31,10 @@ mkdir -p ${outdir}/logs
 cd /home/rmulqueen/projects/spatial_wgs/ #move to project directory
 git clone https://github.com/mulqueenr/spatial_multiome.git ./tools/spatial_multiome #pull git repo
 
+#trying with U24 index to feed through atac only cellranger-atac
 echo """[Settings],
 CreateFastqForIndexReads,1
-OverrideCycles,Y50;I8N2;N8U16;Y47
+OverrideCycles,Y50;I8N2;U24;Y47
 [Data],
 Sample_ID,index
 ${outname}_dna,ACGAGTAG
