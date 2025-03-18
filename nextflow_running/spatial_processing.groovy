@@ -307,11 +307,11 @@ workflow {
 	| collect \
 	| DNA_CELLRANGER_COUNT
 
-	DNA_CELLRANGER_COUNT.dna_bam \
+	DNA_CELLRANGER_COUNT.out.dna_bam \
 	| DNA_SPLIT_BAM \
 	| DNA_PROJECT_COMPLEXITY
 
-	DNA_PROJECT_COMPLEXITY.bam_rmdup \
+	DNA_PROJECT_COMPLEXITY.out.bam_rmdup \
 	| collect \
 	| DNA_COPYKIT
 
