@@ -151,7 +151,7 @@ process DNA_PROJECT_COMPLEXITY {
 	output:
 		path("*rmdup.bam"), emit: bam_rmdup
 		path("*complex_metrics.txt"), emit: complexity_metrics
-		path("*rmdup.stats.txt"), emit: complexity_metrics
+		path("*rmdup.stats.txt"), emit: rmdup_metrics
 
     script:
 		"""
