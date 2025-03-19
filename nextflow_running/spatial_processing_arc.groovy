@@ -72,7 +72,7 @@ process DNA_CELLRANGER_MKFASTQ {
         ${params.cellranger_arc} \\
         mkfastq --id=${params.outname} \\
         --run=${dna_flowcellDir} \\
-        --use-bases-mask=${params.dna_bases_mask} \\
+        --use-bases-mask="${params.dna_bases_mask}" \\
         --output-dir=\${PWD}/dna_fq \\
         --samplesheet=${dna_samplesheet}
 		"""
@@ -96,6 +96,7 @@ process RNA_CELLRANGER_MKFASTQ {
         ${params.cellranger_arc} \\
         mkfastq --id=${params.outname} \\
         --run=${rna_flowcellDir} \\
+        --use-bases-mask="${params.rna_bases_mask}" \\
         --output-dir=\${PWD}/rna_fq \\
         --samplesheet=${rna_samplesheet}
 		"""
