@@ -65,7 +65,7 @@ process DNA_CELLRANGER_MKFASTQ {
 		path(dna_flowcellDir)
 		path(dna_samplesheet)
 	output:
-		path("*"), emit: dna_fq
+		path("dna_fq/${params.dna_flowcell}/*fastq.gz"), emit: dna_fq
     script:
 		"""
         ${params.cellranger_arc} \\
@@ -82,13 +82,14 @@ process RNA_CELLRANGER_MKFASTQ {
 	//Run cellranger on RNA samples, this works straight from bcl files.
 	// Run mkfastq then run count
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/rna_fq", mode: 'copy', overwrite: true, pattern: "${params.outname}_rna/rna_fq/outs/fastq_path/*gz"
+	publishDir "${params.outdir}/rna_fq", mode: 'copy', overwrite: true
 
 	input:
 		path(rna_flowcellDir)
 		path(rna_samplesheet)
 	output:
-		path("*"), emit: rna_fq
+		path("rna_fq/${params.rna_flowcell}/*spatial*fastq.gz"), emit: spatial_fq
+		path("rna_fq/${params.rna_flowcell}/*gex*fastq.gz"), emit: gex_fq
 
     script:
 		"""
@@ -109,8 +110,8 @@ process CELLRANGER_COUNT {
 	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true
 
 	input:
-		path(dna_fq)
-		path(rna_fq)
+		path(dna_fq), stageAs: "dna_fq/"
+		path(gex_fq), stageAs: "gex_fq/"
 
 	output:
 		tuple path("./${params.outname}/outs/possorted_bam.bam"), path("./${params.outname}/outs/possorted_bam.bam.bai"),path("./${params.outname}/outs/filtered_peak_bc_matrix/barcodes.tsv"), emit: dna_bam
@@ -119,8 +120,8 @@ process CELLRANGER_COUNT {
     script:
 		"""
         echo "fastqs,sample,library_type" > libraries.csv
-        echo "${PWD}/${params.outname}_rna/rna_fq/outs/fastq_path/${params.rna_flowcell},${params.outname}_gex,Gene Expression" >> libraries.csv
-        echo "${PWD}/${params.outname}_dna/dna_fq/outs/fastq_path/${params.dna_flowcell},${params.outname}_wgs,Chromatin Accessibility" >> libraries.csv
+        echo "${PWD}/gex_fq/,${params.outname}_gex,Gene Expression" >> libraries.csv
+        echo "${PWD}/dna_fq/,${params.outname}_wgs,Chromatin Accessibility" >> libraries.csv
 
         ${params.cellranger_arc} count \\
 		--id=${params.outname} \\
@@ -321,7 +322,10 @@ workflow {
 	DNA_CELLRANGER_MKFASTQ(dna_flowcell_dir,dna_samplesheet)
     RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 	
-    CELLRANGER_COUNT(DNA_CELLRANGER_MKFASTQ.out.dna_fq, RNA_CELLRANGER_MKFASTQ.out.rna_fq)
+	dna_fq = DNA_CELLRANGER_MKFASTQ.out.dna_fq | collect
+	gex_fq = RNA_CELLRANGER_MKFASTQ.out.gex_fq | collect
+	spatial_fq = RNA_CELLRANGER_MKFASTQ.out.spatial_fq | collect
+    CELLRANGER_COUNT(dna_fq,gex_fq)
 	
     
     //DNA_CELLRANGER_COUNT.out.dna_bam \
