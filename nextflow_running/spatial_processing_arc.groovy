@@ -319,7 +319,7 @@ workflow {
 	DNA_CELLRANGER_MKFASTQ(dna_flowcell_dir,dna_samplesheet)
     RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 	
-    CELLRANGER_COUNT(DNA_CELLRANGER_MKFASTQ.out.dna_fq,RNA_CELLRANGER_MKFASTQ.out.dna_fq)
+    CELLRANGER_COUNT(DNA_CELLRANGER_MKFASTQ.out.dna_fq,RNA_CELLRANGER_MKFASTQ.out.rna_fq)
 	
     
     //DNA_CELLRANGER_COUNT.out.dna_bam \
