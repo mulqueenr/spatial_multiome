@@ -88,6 +88,7 @@ process DNA_BCL_TO_FASTQ {
 
 process DNA_CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
+	//This throws an error when done, not sure why
 	cpus "${params.max_cpus}"
 	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true
 
@@ -95,7 +96,7 @@ process DNA_CELLRANGER_COUNT {
 		path(dna_fqDir), stageAs: 'dna_fq/*'
 
 	output:
-		tuple path("./${params.outname}/outs/possorted_bam.bam"), path("./${params.outname}/outs/filtered_peak_bc_matrix/barcodes.tsv"), emit: dna_bam
+		tuple path("./${params.outname}/outs/possorted_bam.bam"), path("./${params.outname}/outs/possorted_bam.bam.bai"),path("./${params.outname}/outs/filtered_peak_bc_matrix/barcodes.tsv"), emit: dna_bam
 		path("./${params.outname}/outs/*"), emit: dna_outdir
 
     script:
@@ -106,7 +107,7 @@ process DNA_CELLRANGER_COUNT {
 		--id=${params.outname} \\
 		--localcores=${params.max_cpus} \\
 		--chemistry=ARC-v1 \\
-        --localmem=300
+        --localmem=1000
 		"""
 
 }
@@ -114,26 +115,28 @@ process DNA_CELLRANGER_COUNT {
 process DNA_SPLIT_BAM {
 	//Use timoast sinto to split bam by CB tag
 	//conda install sinto
-
-	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_cellranger/sc_bam", mode: 'copy', overwrite: true 
+	//cpu limit hard set because this causes a lot of i/o
+	cpus 50
+	publishDir "${params.outdir}/dna_cellranger/sc_dna_bam", mode: 'copy', overwrite: true 
 
 	input:
-		tuple path(dna_bam),path(dna_barcodes)
+		tuple path(dna_bam),path(dna_bam_bai),path(dna_barcodes)
 
 	output:
-		path("./sc_bam/*bam"), emit: bam
+		path("./sc_dna_bam/*bam"), emit: bam
 
     script:
 		"""
-		awk -F, OFS="\t" '{print \$1,\$1}' ${dna_barcodes} > cell_id.tsv
+		#make splitting barcode list from whitelist
+		awk -F, 'OFS="\t" {print \$1,\$1}' ${dna_barcodes} > cell_id.tsv
 
-		sinto filterbarcodes \\
-		--bam ${bam} \\
-		--cells cell_id.tsv \\
-		-p ${task.cpus} \\
-		--barcodetag "CB" \\
-		--outdir ./sc_bam
+		#split to chunks of 500 cells for i/o purposes
+		split -l 500 --numeric-suffixes cell_id.tsv cell_id.split.
+
+		#run cell splitting for each 500 chunk
+		for i in cell_id.split* ; do
+		sinto filterbarcodes --bam ${bam} --cells \$i -p ${task.cpus} --barcodetag "CB" --outdir ./sc_dna_bam ;
+		done
 		"""
 }
 
@@ -154,17 +157,28 @@ process DNA_PROJECT_COMPLEXITY {
 		path("*rmdup.stats.txt"), emit: rmdup_metrics
 
     script:
-		"""
-		samtools sort -T . -n -o - ${bam} | \\
-		samtools fixmate -m - - | \\
-		samtools sort -T . -o - - | \\
-		samtools markdup -s - ${bam.simpleName}.rmdup.bam 2> ${bam.simpleName}.rmdup.stats.txt
+	/*function proj_complexity() {
+	bam=$1
+	bam_simplename=${bam::-4}
+	samtools sort -T . -n -o - ${bam} | \
+	samtools fixmate -m - - | \
+	samtools sort -T . -o - - | \
+	samtools markdup -s - ${bam_simplename}.rmdup.bam 2> ${bam_simplename}.rmdup.stats.txt
 
-		java -jar ~/tools/picard.jar \\
-		EstimateLibraryComplexity \\
-		MAX_OPTICAL_DUPLICATE_SET_SIZE=-1 \\
-		I=${bam.simpleName}.rmdup.bam \\
-		O=${bam.simpleName}.complex_metrics.txt
+	java -jar ~/tools/picard.jar \
+	EstimateLibraryComplexity \
+	MAX_OPTICAL_DUPLICATE_SET_SIZE=-1 \
+	I=${bam_simplename}.rmdup.bam \
+	O=${bam_simplename}.complex_metrics.txt
+	}
+
+	export -f proj_complexity
+	parallel -j 100 proj_complexity ::: $(ls *-1.bam)
+
+	for i in *complex_metrics.txt;
+	do grep "^Unknown" $i | awk -v cellid=${i::-20} 'OFS="," {print cellid,$3,$9,$10}' ; done > dna_cell_metrics.csv
+	*/
+		"""
 		"""
 }
 
@@ -174,10 +188,9 @@ process DNA_COPYKIT {
 	//Run CopyKit and output list of bam files by clones
 	cpus "${params.max_cpus}"
 	label 'cnv'
-	//publishDir "${params.outdir}/plots/cnv", mode: 'copy', pattern: "*pdf"
 	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
 	publishDir "${params.outdir}/cnv_calling", mode: 'copy', pattern: "*{tsv,rds}"
-	publishDir "${params.outdir}/plots", mode: 'copy', pattern: "*pdf"
+	publishDir "${params.outdir}/plots/cnv", mode: 'copy', pattern: "*pdf"
 
 	input:
 		path bam_bbrd_collection
@@ -186,6 +199,14 @@ process DNA_COPYKIT {
 		path("*.scCNA.tsv"), emit: copykit_tsv
 		path("*pdf"), emit: copykit_plots
 	script:
+	/*
+	singularity shell --bind /home/rmulqueen/projects/spatial_wgs/tools/spatial_multiome/src:/src/ ~/singularity/copykit.sif 
+	Rscript /src/copykit_cnv_clones.nf.R \
+	--input_dir . \
+	--output_prefix spatial_dcis41t \
+	--task_cpus 300
+	*/
+
 		"""
 		Rscript /src/copykit_cnv_clones.nf.R \\
 		--input_dir . \\
@@ -281,17 +302,16 @@ process SPATIAL_CURIO {
 		path("*")
 
     script:
-		"""
-		sample_name="${params.outname}_rna"
-		experiment_date="${params.date}"
-		cp \$(realpath ./sc_outdir/${params.outname}/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
+	"""
+	sample_name="${params.outname}_rna"
+	cp \$(realpath ./sc_outdir/${params.outname}/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
 
-		echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
-		echo "\${sample_name},\${sample_name},\${experiment_date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
+	echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
+	echo "${sample_name},${sample_name},${params.date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task_cpus}" >> samplesheet.trekker.csv
 
-		bash /home/rmulqueen/tools/curiotrekker-v1.1.0/nuclei_locater_toplevel.sh \\
-		samplesheet.trekker.csv
-		"""
+	bash /home/rmulqueen/tools/curiotrekker-v1.1.0/nuclei_locater_toplevel.sh \\
+	samplesheet.trekker.csv
+	"""
 }
 
 workflow {
@@ -307,6 +327,7 @@ workflow {
 	| collect \
 	| DNA_CELLRANGER_COUNT
 
+	/*
 	DNA_CELLRANGER_COUNT.out.dna_bam \
 	| DNA_SPLIT_BAM \
 	| DNA_PROJECT_COMPLEXITY
@@ -314,22 +335,19 @@ workflow {
 	DNA_PROJECT_COMPLEXITY.out.bam_rmdup \
 	| collect \
 	| DNA_COPYKIT
+	*/
 
-/*
 	//Generate seurat object from RNA data
-	rna_fq_in = \
 	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 
-	rna_out = \
-	rna_fq_in.transcriptome \
+	RNA_CELLRANGER_MKFASTQ.out.transcriptome \
 	| collect \
 	| RNA_CELLRANGER_COUNT
 
-	RNA_SEURAT_OBJECT_GENERATION(rna_out.outdir)
+	//RNA_SEURAT_OBJECT_GENERATION(RNA_CELLRANGER_COUNT.out.outdir)
 
 	//Generate spatial information from curio oligoes
 	SPATIAL_CURIO(rna_fq_in.spatial,spatial_barcode,rna_out.outdir)
-*/
 }
 
 /* See README.md for example run */
