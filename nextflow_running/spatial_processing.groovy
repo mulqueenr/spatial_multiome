@@ -323,9 +323,9 @@ workflow {
 	spatial_barcode = Channel.fromPath(params.spatial_barcode)
 
 //Generate copy number calls from DNA data
-	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) \
-	| collect \
-	| DNA_CELLRANGER_COUNT
+	//DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) //
+	//| collect \
+	//| DNA_CELLRANGER_COUNT
 
 	/*
 	DNA_CELLRANGER_COUNT.out.dna_bam \
