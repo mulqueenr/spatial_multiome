@@ -59,13 +59,13 @@ process DNA_CELLRANGER_MKFASTQ {
 	//Generate Undetermined Fastq Files from BCL Files.
 	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one if we add a sif
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_fq", mode: 'copy', overwrite: true, pattern: "${params.outname}_dna/dna_fq/outs/fastq_path/*gz"
+	publishDir "${params.outdir}/dna_fq", mode: 'copy', overwrite: true
 
 	input:
 		path(dna_flowcellDir)
 		path(dna_samplesheet)
 	output:
-		path("dna_fq/${params.dna_flowcell}/*fastq.gz"), emit: dna_fq
+		path("dna_fq/${params.dna_flowcell}/${params.outname}_wgs/*fastq.gz"), emit: dna_fq
     script:
 		"""
         ${params.cellranger_arc} \\
