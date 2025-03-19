@@ -347,7 +347,7 @@ workflow {
 	//RNA_SEURAT_OBJECT_GENERATION(RNA_CELLRANGER_COUNT.out.outdir)
 
 	//Generate spatial information from curio oligoes
-	SPATIAL_CURIO(rna_fq_in.spatial,spatial_barcode,rna_out.outdir)
+	SPATIAL_CURIO(RNA_CELLRANGER_MKFASTQ.out.spatial,spatial_barcode,RNA_CELLRANGER_COUNT.out.outdir)
 }
 
 /* See README.md for example run */
