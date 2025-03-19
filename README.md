@@ -42,14 +42,18 @@ ${outname}_dna,CAATCCCT
 ${outname}_dna,GTCCAGGC
 ${outname}_dna,TGTGTATA""" > ${outdir}/DNA_SampleSheet.csv
 
+
+echo """Lane,Sample,Index
+*,${outname}_wgs,SI-NA-H12""" > ${outdir}/DNA_SimpleSampleSheet.csv
+
 echo """Lane,Sample,Index
 *,${outname}_spatial,SI-TT-D6
-*,${outname}_rna,SI-TT-D11""" > ${outdir}/RNA_SimpleSampleSheet.csv
+*,${outname}_gex,SI-TT-D11""" > ${outdir}/RNA_SimpleSampleSheet.csv
 
-nextflow ./tools/spatial_multiome/nextflow_running/spatial_processing.groovy \
+nextflow ./tools/spatial_multiome/nextflow_running/spatial_processing_arc.groovy \
 -with-report \
 --dna_flowcellDir ${DNA_flowcellDir} \
---dna_samplesheet ${outdir}/DNA_SampleSheet.csv \
+--dna_samplesheet ${outdir}/DNA_SimpleSampleSheet.csv \
 --rna_flowcellDir ${RNA_flowcellDir} \
 --rna_samplesheet ${outdir}/RNA_SimpleSampleSheet.csv \
 --outname ${outname} \

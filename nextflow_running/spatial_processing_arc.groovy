@@ -5,8 +5,7 @@ nextflow.enable.dsl=2
 // Script parameters
 // DNA
 params.dna_flowcellDir = "/home/rmulqueen/projects/spatial_wgs/seq/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
-params.dna_samplesheet = "DNA_SampleSheet.csv"
-
+params.dna_samplesheet = "DNA_SimpleSampleSheet.csv"
 params.spatial_barcode = "/home/rmulqueen/tools/curiotrekker-v1.1.0/U0028_003_BeadBarcodes.txt"
 
 // RNA
@@ -17,8 +16,6 @@ params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
 params.ref="/home/rmulqueen/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
 params.src="/home/rmulqueen/projects/spatial_wgs/tools/spatial_multiome/src"
 params.cellranger_arc="/home/rmulqueen/tools/cellranger-arc-2.0.2/cellranger-arc"
-params.cellranger_atac="/home/rmulqueen/tools/cellranger-atac-2.1.0/cellranger-atac"
-params.cellranger_rna="/home/rmulqueen/tools/cellranger-9.0.1/cellranger"
 params.max_cpus="200"
 
 //output
@@ -56,44 +53,58 @@ log.info """
 """.stripIndent()
 
 // BCL TO FASTQ PIPELINE FOR GENERATING SINGLE-CELL FASTQs
-process DNA_BCL_TO_FASTQ { 
+process DNA_CELLRANGER_MKFASTQ { 
 	//Generate Undetermined Fastq Files from BCL Files.
 	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one if we add a sif
 	cpus "${params.max_cpus}"
-	containerOptions "--bind ${params.outdir}/logs:/var/log/bcl-convert"	
-	label 'amethyst'
+	publishDir "${params.outdir}/dna_fq", mode: 'copy', overwrite: true
 
 	input:
 		path(dna_flowcellDir)
 		path(dna_samplesheet)
 	output:
-		path("*fastq.gz")
+		path("*"), emit: dna_fq
     script:
 		"""
-        #Run initial bcl convert and count gem indexes to determine whitelist for splitting
-        task_cpus=\$(expr ${task.cpus} / 3)
-
-        bcl-convert \\
-        --bcl-input-directory ${dna_flowcellDir} \\
-        --bcl-num-conversion-threads \$task_cpus \\
-        --bcl-num-compression-threads \$task_cpus \\
-        --bcl-num-decompression-threads \$task_cpus \\
-		--bcl-only-matched-reads true \\
-        --sample-sheet ${dna_samplesheet} \\
-        --no-lane-splitting true \\
-        --output-directory . \\
-        --force
+        ${params.cellranger_arc} \\
+        mkfastq --id=${params.outname} \\
+        --run=${dna_flowcellDir} \\
+        --samplesheet=${dna_samplesheet}
 		"""
 }
 
-process DNA_CELLRANGER_COUNT {
+
+process RNA_CELLRANGER_MKFASTQ {
+	//Run cellranger on RNA samples, this works straight from bcl files.
+	// Run mkfastq then run count
+	cpus "${params.max_cpus}"
+	publishDir "${params.outdir}/rna_fq", mode: 'copy', overwrite: true
+
+	input:
+		path(rna_flowcellDir)
+		path(rna_samplesheet)
+	output:
+		path("*"), emit: rna_fq
+
+    script:
+		"""
+        ${params.cellranger_arc} \\
+        mkfastq --id=${params.outname} \\
+        --run=${rna_flowcellDir} \\
+        --samplesheet=${rna_samplesheet}
+		"""
+
+}
+
+process CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	//This throws an error when done, not sure why
 	cpus "${params.max_cpus}"
 	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true
 
 	input:
-		path(dna_fqDir), stageAs: 'dna_fq/*'
+		path(dna_fq)
+		path(rna_fq)
 
 	output:
 		tuple path("./${params.outname}/outs/possorted_bam.bam"), path("./${params.outname}/outs/possorted_bam.bam.bai"),path("./${params.outname}/outs/filtered_peak_bc_matrix/barcodes.tsv"), emit: dna_bam
@@ -101,12 +112,15 @@ process DNA_CELLRANGER_COUNT {
 
     script:
 		"""
-        ${params.cellranger_atac} count \\
-		--fastqs="\${PWD}/dna_fq/" \\
-		--reference=${params.ref} \\
+        echo "fastqs,sample,library_type" > libraries.csv
+        echo "${PWD}/HNGEXSQXXX/outs/fastq_path,example,Gene Expression" >> libraries.csv
+        echo "${PWD}/HNATACSQXX/outs/fastq_path,example,Chromatin Accessibility" >> libraries.csv
+
+        ${params.cellranger_arc} count \\
 		--id=${params.outname} \\
-		--localcores=${params.max_cpus} \\
-		--chemistry=ARC-v1 \\
+        --reference=${params.ref} \\
+        --libraries=libraries.csv \\
+        --localcores=${params.max_cpus} \\
         --localmem=1000
 		"""
 
@@ -215,31 +229,6 @@ process DNA_COPYKIT {
 		"""
 }
 
-process RNA_CELLRANGER_MKFASTQ{
-	//Run cellranger on RNA samples, this works straight from bcl files.
-	// Run mkfastq then run count
-	cpus "${params.max_cpus}"
-
-	input:
-		path(rna_flowcellDir)
-		path(rna_samplesheet)
-	output:
-		path("${params.outname}/outs/fastq_path/*/${params.outname}_rna*{I1,I2,R1,R2}_001.fastq.gz"), emit: transcriptome
-		path("${params.outname}/outs/fastq_path/*/${params.outname}_spatial*{I1,I2,R1,R2}_001.fastq.gz"), emit: spatial
-
-    script:
-		"""
-		${params.cellranger_rna} mkfastq \\
-		--run=${rna_flowcellDir} \\
-		--id=${params.outname} \\
-		--samplesheet=${rna_samplesheet} \\
-		--localcores=${params.max_cpus} \\
-		--delete-undetermined \\
-		--localmem=300
-		"""
-
-}
-
 process RNA_CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	cpus "${params.max_cpus}"
@@ -323,31 +312,29 @@ workflow {
 	spatial_barcode = Channel.fromPath(params.spatial_barcode)
 
 //Generate copy number calls from DNA data
-	DNA_BCL_TO_FASTQ(dna_flowcell_dir,dna_samplesheet) //
-	| collect \
-	| DNA_CELLRANGER_COUNT
-
+	DNA_CELLRANGER_MKFASTQ(dna_flowcell_dir,dna_samplesheet)
+    RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 	
-	DNA_CELLRANGER_COUNT.out.dna_bam \
-	| DNA_SPLIT_BAM \
-	| DNA_PROJECT_COMPLEXITY
+    CELLRANGER_COUNT(DNA_CELLRANGER_MKFASTQ.out.dna_fq,RNA_CELLRANGER_MKFASTQ.out.dna_fq)
+	
+    
+    //DNA_CELLRANGER_COUNT.out.dna_bam \
+	//| DNA_SPLIT_BAM \
+	//| DNA_PROJECT_COMPLEXITY
 
-	DNA_PROJECT_COMPLEXITY.out.bam_rmdup \
-	| collect \
-	| DNA_COPYKIT
+	//DNA_PROJECT_COMPLEXITY.out.bam_rmdup \
+	//| collect \
+	//| DNA_COPYKIT
 	
 
-	//Generate seurat object from RNA data
-	RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
-
-	RNA_CELLRANGER_MKFASTQ.out.transcriptome \
-	| collect \
-	| RNA_CELLRANGER_COUNT
+	//RNA_CELLRANGER_MKFASTQ.out.transcriptome \
+	//| collect \
+	//| RNA_CELLRANGER_COUNT
 
 	//RNA_SEURAT_OBJECT_GENERATION(RNA_CELLRANGER_COUNT.out.outdir)
 
 	//Generate spatial information from curio oligoes
-	SPATIAL_CURIO(RNA_CELLRANGER_MKFASTQ.out.spatial,spatial_barcode,RNA_CELLRANGER_COUNT.out.outdir)
+	//SPATIAL_CURIO(RNA_CELLRANGER_MKFASTQ.out.spatial,spatial_barcode,RNA_CELLRANGER_COUNT.out.outdir)
 }
 
 /* See README.md for example run */
