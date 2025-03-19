@@ -7,13 +7,14 @@ nextflow.enable.dsl=2
 params.dna_flowcellDir = "/home/rmulqueen/projects/spatial_wgs/seq/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
 params.dna_samplesheet = "DNA_SimpleSampleSheet.csv"
 params.dna_bases_mask = "Y50,I8N*,Y24,Y47"
-params.spatial_barcode = "/home/rmulqueen/tools/curiotrekker-v1.1.0/U0028_003_BeadBarcodes.txt"
+params.dna_flowcell = "AAGHWKTM5"
 
 // RNA
 params.rna_flowcellDir = "/home/rmulqueen/projects/spatial_wgs/seq/250220_RM_CuioWGS_RNA" //Sequencing run flowcell dir
 params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
 params.rna_bases_mask = "Y28,I10,I10,Y90"
-
+params.rna_flowcell = "AAGHWVCM5"
+params.spatial_barcode = "/home/rmulqueen/tools/curiotrekker-v1.1.0/U0028_003_BeadBarcodes.txt"
 
 //REF
 params.ref="/home/rmulqueen/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
@@ -47,8 +48,6 @@ log.info """
 		Output Prefix : ${params.outname}
 		NF Working Dir : ${workflow.launchDir}
 		Cellranger ARC install : ${params.cellranger_arc}
-		Cellranger ATAC install : ${params.cellranger_atac}
-		Cellranger RNA install : ${params.cellranger_rna}
 
 		Max cpus : ${params.max_cpus}
 		================================================
@@ -60,7 +59,7 @@ process DNA_CELLRANGER_MKFASTQ {
 	//Generate Undetermined Fastq Files from BCL Files.
 	//bcl-convert requires write access to "/var/logs/bcl-convert", so we just bind a dummy one if we add a sif
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_fq", mode: 'copy', overwrite: true
+	publishDir "${params.outdir}/dna_fq", mode: 'copy', overwrite: true, pattern: "${params.outname}_dna/dna_fq/outs/fastq_path/*gz"
 
 	input:
 		path(dna_flowcellDir)
@@ -70,7 +69,7 @@ process DNA_CELLRANGER_MKFASTQ {
     script:
 		"""
         ${params.cellranger_arc} \\
-        mkfastq --id=${params.outname} \\
+        mkfastq --id=${params.outname}_dna \\
         --run=${dna_flowcellDir} \\
         --use-bases-mask=${params.dna_bases_mask} \\
         --output-dir=\${PWD}/dna_fq \\
@@ -83,7 +82,7 @@ process RNA_CELLRANGER_MKFASTQ {
 	//Run cellranger on RNA samples, this works straight from bcl files.
 	// Run mkfastq then run count
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/rna_fq", mode: 'copy', overwrite: true
+	publishDir "${params.outdir}/rna_fq", mode: 'copy', overwrite: true, pattern: "${params.outname}_rna/rna_fq/outs/fastq_path/*gz"
 
 	input:
 		path(rna_flowcellDir)
@@ -94,7 +93,7 @@ process RNA_CELLRANGER_MKFASTQ {
     script:
 		"""
         ${params.cellranger_arc} \\
-        mkfastq --id=${params.outname} \\
+        mkfastq --id=${params.outname}_rna \\
         --run=${rna_flowcellDir} \\
         --use-bases-mask=${params.rna_bases_mask} \\
         --output-dir=\${PWD}/rna_fq \\
@@ -120,8 +119,8 @@ process CELLRANGER_COUNT {
     script:
 		"""
         echo "fastqs,sample,library_type" > libraries.csv
-        echo "${PWD}/HNGEXSQXXX/outs/fastq_path,example,Gene Expression" >> libraries.csv
-        echo "${PWD}/HNATACSQXX/outs/fastq_path,example,Chromatin Accessibility" >> libraries.csv
+        echo "${PWD}/${params.outname}_rna/rna_fq/outs/fastq_path/${params.rna_flowcell},${params.outname}_gex,Gene Expression" >> libraries.csv
+        echo "${PWD}/${params.outname}_dna/dna_fq/outs/fastq_path/${params.dna_flowcell},${params.outname}_wgs,Chromatin Accessibility" >> libraries.csv
 
         ${params.cellranger_arc} count \\
 		--id=${params.outname} \\
@@ -322,7 +321,7 @@ workflow {
 	DNA_CELLRANGER_MKFASTQ(dna_flowcell_dir,dna_samplesheet)
     RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 	
-    CELLRANGER_COUNT(DNA_CELLRANGER_MKFASTQ.out.dna_fq,RNA_CELLRANGER_MKFASTQ.out.rna_fq)
+    CELLRANGER_COUNT(DNA_CELLRANGER_MKFASTQ.out.dna_fq, RNA_CELLRANGER_MKFASTQ.out.rna_fq)
 	
     
     //DNA_CELLRANGER_COUNT.out.dna_bam \
