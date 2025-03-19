@@ -6,13 +6,13 @@ nextflow.enable.dsl=2
 // DNA
 params.dna_flowcellDir = "/home/rmulqueen/projects/spatial_wgs/seq/250227_RM_CurioWGS_scalemet" //Sequencing run flowcell dir
 params.dna_samplesheet = "DNA_SimpleSampleSheet.csv"
-params.dna_bases_mask = "Y50;I8N2;I24;Y47"
+params.dna_bases_mask = "Y50,I8N2,I24,Y47"
 params.spatial_barcode = "/home/rmulqueen/tools/curiotrekker-v1.1.0/U0028_003_BeadBarcodes.txt"
 
 // RNA
 params.rna_flowcellDir = "/home/rmulqueen/projects/spatial_wgs/seq/250220_RM_CuioWGS_RNA" //Sequencing run flowcell dir
 params.rna_samplesheet = "RNA_SimpleSampleSheet.csv"
-params.rna_bases_mask = "Y28;I10;I10;Y90"
+params.rna_bases_mask = "Y28,I10,I10,Y90"
 
 
 //REF
