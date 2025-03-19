@@ -120,8 +120,8 @@ process CELLRANGER_COUNT {
     script:
 		"""
         echo "fastqs,sample,library_type" > libraries.csv
-        echo "${PWD}/gex_fq/,${params.outname}_gex,Gene Expression" >> libraries.csv
-        echo "${PWD}/dna_fq/,${params.outname}_wgs,Chromatin Accessibility" >> libraries.csv
+        echo "\${PWD}/gex_fq/,${params.outname}_gex,Gene Expression" >> libraries.csv
+        echo "\${PWD}/dna_fq/,${params.outname}_wgs,Chromatin Accessibility" >> libraries.csv
 
         ${params.cellranger_arc} count \\
 		--id=${params.outname} \\
