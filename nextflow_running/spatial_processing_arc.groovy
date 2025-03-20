@@ -300,7 +300,7 @@ workflow {
 	//| DNA_COPYKIT
 
 // USE RNA AND SPATIAL FOR CURIO PIPELINE
-	SPATIAL_CURIO(RNA_CELLRANGER_MKFASTQ.out.spatial,
+	SPATIAL_CURIO(spatial_fq,
 					spatial_barcode,
 					CELLRANGER_COUNT.out.multiome_outdir)
 
