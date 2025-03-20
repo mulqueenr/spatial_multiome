@@ -141,7 +141,7 @@ process DNA_SPLIT_BAM {
 	//conda install sinto
 	//cpu limit hard set because this causes a lot of i/o
 	cpus 50
-	publishDir "${params.outdir}/dna_cellranger/sc_dna_bam", mode: 'copy', overwrite: true 
+	publishDir "${params.outdir}/dna/sc_dna_bam", mode: 'copy', overwrite: true 
 
 	input:
 		tuple path(dna_bam),path(dna_bam_bai),path(dna_barcodes)
@@ -168,7 +168,7 @@ process DNA_SPLIT_BAM {
 process DNA_PROJECT_COMPLEXITY {
 	//Use picard tools to project library complexity
 	maxForks 200
-	publishDir "${params.outdir}/dna_cellranger/sc_bam_dedup", mode: 'copy', overwrite: true, pattern: "*bbrd.bam"
+	publishDir "${params.outdir}/dna/sc_bam_dedup", mode: 'copy', overwrite: true, pattern: "*bbrd.bam"
 	publishDir "${params.outdir}/reports/dna/complexity", mode: 'copy', overwrite: true , pattern: "*.projected_metrics.txt"
 	publishDir "${params.outdir}/reports/dna/rmdup", mode: 'copy', overwrite: true , pattern: "*.markdup.log"
 
@@ -216,7 +216,7 @@ process DNA_COPYKIT {
 	cpus "${params.max_cpus}"
 	label 'cnv'
 	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
-	publishDir "${params.outdir}/cnv_calling", mode: 'copy', pattern: "*{tsv,rds}"
+	publishDir "${params.outdir}/dna/cnv_calling", mode: 'copy', pattern: "*{tsv,rds}"
 	publishDir "${params.outdir}/plots/cnv", mode: 'copy', pattern: "*pdf"
 
 	input:
@@ -259,9 +259,11 @@ process SPATIAL_CURIO {
     script:
 	"""
 	cp \$(realpath ./multiome_outdir/${params.outname}/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
+	fq1="${params.outname}_spatial_S1_L001_R1_001.fastq.gz"
+	fq2="${params.outname}_spatial_S1_L001_R2_001.fastq.gz"
 
 	echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
-	echo "${params.outname}_rna,${params.outname}_rna,${params.date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task_cpus}" >> samplesheet.trekker.csv
+	echo "${params.outname}_rna,${params.outname}_rna,${params.date},${spatial_barcode},\${fq1},\${fq2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task_cpus}" >> samplesheet.trekker.csv
 
 	bash /curio/nuclei_locater_toplevel.sh \\
 	samplesheet.trekker.csv
@@ -276,33 +278,32 @@ workflow {
 	rna_samplesheet = Channel.fromPath(params.rna_samplesheet)
 	spatial_barcode = Channel.fromPath(params.spatial_barcode)
 
-//Generate copy number calls from DNA data
+// RUN CELLRANGER ARC PIPELINE
 	DNA_CELLRANGER_MKFASTQ(dna_flowcell_dir,dna_samplesheet)
     RNA_CELLRANGER_MKFASTQ(rna_flowcell_dir,rna_samplesheet)
 	
 	dna_fq = DNA_CELLRANGER_MKFASTQ.out.dna_fq | collect
+	
 	gex_fq = RNA_CELLRANGER_MKFASTQ.out.gex_fq | collect
+	
 	spatial_fq = RNA_CELLRANGER_MKFASTQ.out.spatial_fq | collect
     CELLRANGER_COUNT(dna_fq,gex_fq)
 	
-    
-    //DNA_CELLRANGER_COUNT.out.dna_bam \
-	//| DNA_SPLIT_BAM \
-	//| DNA_PROJECT_COMPLEXITY
+// DNA PROJECT SINGLE CELL DNA COMPLEXITY
+    DNA_CELLRANGER_COUNT.out.dna_bam \
+	| DNA_SPLIT_BAM \
+	| DNA_PROJECT_COMPLEXITY
 
-	//DNA_PROJECT_COMPLEXITY.out.bam_rmdup \
-	//| collect \
-	//| DNA_COPYKIT
-	
+// DNA RUN COPYKIT
+	DNA_PROJECT_COMPLEXITY.out.bam_rmdup \
+	| collect \
+	| DNA_COPYKIT
 
-	//RNA_CELLRANGER_MKFASTQ.out.transcriptome \
-	//| collect \
-	//| RNA_CELLRANGER_COUNT
+// USE RNA AND SPATIAL FOR CURIO PIPELINE
+	SPATIAL_CURIO(RNA_CELLRANGER_MKFASTQ.out.spatial,
+					spatial_barcode,
+					CELLRANGER_COUNT.out.multiome_outdir)
 
-	//RNA_SEURAT_OBJECT_GENERATION(RNA_CELLRANGER_COUNT.out.outdir)
-
-	//Generate spatial information from curio oligoes
-	//SPATIAL_CURIO(RNA_CELLRANGER_MKFASTQ.out.spatial,spatial_barcode,RNA_CELLRANGER_COUNT.out.outdir)
 }
 
 /* See README.md for example run */
