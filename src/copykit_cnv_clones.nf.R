@@ -21,10 +21,10 @@ prefix=opt$output_prefix
 register(MulticoreParam(progressbar = T, workers = cpu_count), default = T)
 
 genome <- "hg38"
-resolution <- "1Mb" #running at real low res for now
+resolution <- "220kb" #running at real low res for now
 min_bincount = 10
 
-dat<-runVarbin(".", remove_Y=TRUE,is_paired_end=TRUE,resolution="1Mb")
+dat<-runVarbin(".", remove_Y=TRUE,is_paired_end=TRUE,resolution="220kb")
 dat  <- runMetrics(dat)
 
 pdf(paste0(prefix,".qc_metrics.pdf"))

@@ -20,6 +20,8 @@ params.spatial_barcode = "/home/rmulqueen/tools/curiotrekker-v1.1.0/U0028_003_Be
 params.ref="/home/rmulqueen/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
 params.src="/home/rmulqueen/projects/spatial_wgs/tools/spatial_multiome/src"
 params.cellranger_arc="/home/rmulqueen/tools/cellranger-arc-2.0.2/cellranger-arc"
+params.curio_trekker="/home/rmulqueen/tools/curiotrekker-v1.1.0/"
+
 params.max_cpus="200"
 
 //output
@@ -107,15 +109,16 @@ process CELLRANGER_COUNT {
 	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
 	//This throws an error when done, not sure why
 	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_cellranger", mode: 'copy', overwrite: true
+	publishDir "${params.outdir}/arc_cellranger_out", mode: 'copy', overwrite: true
 
 	input:
 		path(dna_fq), stageAs: "dna_fq/"
 		path(gex_fq), stageAs: "gex_fq/"
 
 	output:
-		tuple path("./${params.outname}/outs/possorted_bam.bam"), path("./${params.outname}/outs/possorted_bam.bam.bai"),path("./${params.outname}/outs/filtered_peak_bc_matrix/barcodes.tsv"), emit: dna_bam
-		path("./${params.outname}/outs/*"), emit: dna_outdir
+		tuple path("./${params.outname}/outs/atac_possorted_bam.bam"), path("./${params.outname}/outs/atac_possorted_bam.bam.bai"),path("./${params.outname}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz"), emit: dna_bam
+		
+		path("./*"), emit: multiome_outdir
 
     script:
 		"""
@@ -149,7 +152,7 @@ process DNA_SPLIT_BAM {
     script:
 		"""
 		#make splitting barcode list from whitelist
-		awk -F, 'OFS="\t" {print \$1,\$1}' ${dna_barcodes} > cell_id.tsv
+		zcat ${dna_barcodes} | awk -F, 'OFS="\t" {print \$1,\$1}' > cell_id.tsv
 
 		#split to chunks of 500 cells for i/o purposes
 		split -l 500 --numeric-suffixes cell_id.tsv cell_id.split.
@@ -164,42 +167,45 @@ process DNA_SPLIT_BAM {
 
 process DNA_PROJECT_COMPLEXITY {
 	//Use picard tools to project library complexity
-	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/dna_cellranger/sc_bam_dedup", mode: 'copy', overwrite: true, pattern: "*rmdup.bam"
-	publishDir "${params.outdir}/reports/dna/complexity", mode: 'copy', overwrite: true , pattern: "*metrics.txt"
-	publishDir "${params.outdir}/reports/dna/rmdup", mode: 'copy', overwrite: true , pattern: "*rmdup.stats.txt"
+	maxForks 200
+	publishDir "${params.outdir}/dna_cellranger/sc_bam_dedup", mode: 'copy', overwrite: true, pattern: "*bbrd.bam"
+	publishDir "${params.outdir}/reports/dna/complexity", mode: 'copy', overwrite: true , pattern: "*.projected_metrics.txt"
+	publishDir "${params.outdir}/reports/dna/rmdup", mode: 'copy', overwrite: true , pattern: "*.markdup.log"
 
 	input:
 		path(bam)
 
 	output:
-		path("*rmdup.bam"), emit: bam_rmdup
-		path("*complex_metrics.txt"), emit: complexity_metrics
-		path("*rmdup.stats.txt"), emit: rmdup_metrics
+		path("*bbrd.bam"), emit: bam_rmdup
+		path("*.projected_metrics.txt"), emit: complexity_metrics
+		path("*.markdup.log"), emit: rmdup_metrics
 
     script:
-	/*function proj_complexity() {
-	bam=$1
-	bam_simplename=${bam::-4}
-	samtools sort -T . -n -o - ${bam} | \
-	samtools fixmate -m - - | \
-	samtools sort -T . -o - - | \
-	samtools markdup -s - ${bam_simplename}.rmdup.bam 2> ${bam_simplename}.rmdup.stats.txt
-
-	java -jar ~/tools/picard.jar \
-	EstimateLibraryComplexity \
-	MAX_OPTICAL_DUPLICATE_SET_SIZE=-1 \
-	I=${bam_simplename}.rmdup.bam \
-	O=${bam_simplename}.complex_metrics.txt
-	}
-
-	export -f proj_complexity
-	parallel -j 100 proj_complexity ::: $(ls *-1.bam)
-
-	for i in *complex_metrics.txt;
-	do grep "^Unknown" $i | awk -v cellid=${i::-20} 'OFS="," {print cellid,$3,$9,$10}' ; done > dna_cell_metrics.csv
-	*/
 		"""
+		cellid=${bam.simpleName}
+		#output bam, remove duplicates
+		samtools sort -m 10G -n $bam | \\
+		samtools fixmate -p -m - - | \\
+		samtools sort -m 10G -O BAM -o \${cellid}.tmp.bam
+
+		#output of removal of duplicate reads
+		samtools markdup --mode t -r -S -s -f \${cellid}.markdup.log \${cellid}.tmp.bam \${cellid}.bbrd.bam
+
+		#generate library complexity based on 10% downsample rates
+		#count unique chr:start sites
+		for i in \$(seq 0.1 0.1 1.0); do
+		uniq_count=\$(samtools view -F 3332 -s \$i \${cellid}.tmp.bam \\
+		| awk 'OFS="\\t"{print \$3,\$4}' \\
+		| sort \\
+		| uniq -c \\
+		| wc -l)
+		total_count=\$(samtools view -F 3332 -s \$i \${cellid}.tmp.bam | wc -l)
+		echo "\${cellid},\${i},\${total_count},\${uniq_count}"; done > \${cellid}.projected_metrics.txt
+		#excluding reads that meet any below conditions:
+		#read unmapped (0x4)
+		#not primary alignment (0x100)
+		#read is PCR or optical duplicate (0x400)
+		#supplementary alignment (0x800)
 		"""
 }
 
@@ -236,76 +242,28 @@ process DNA_COPYKIT {
 		"""
 }
 
-process RNA_CELLRANGER_COUNT {
-	//Run cellranger on DNA samples, to generate GEM-indexed bam file.
-	cpus "${params.max_cpus}"
-	publishDir "${params.outdir}/rna_cellranger", mode: 'copy', overwrite: true
-
-	input:
-		path(rna_fqDir), stageAs: 'rna_fq/*'
-
-	output:
-		path("*"), emit: outdir
-
-    script:
-		"""
-      	${params.cellranger_rna} count \\
-		--fastqs="\${PWD}/rna_fq/" \\
-		--transcriptome=${params.ref} \\
-		--id=${params.outname} \\
-		--create-bam=true \\
-		--chemistry=ARC-v1 \\
-		--localcores=${params.max_cpus} \\
-		--localmem=300 2> cellranger.log
-		"""
-}
-
-process RNA_SEURAT_OBJECT_GENERATION {
-	//Make Seurat object from cellranger output
-	cpus "${params.max_cpus}"
-	label 'amethyst' //I havent made a dedicated sif for spatial project yet.
-	publishDir "${params.outdir}/plots", mode: 'copy', overwrite: true, pattern: '*pdf'
-	containerOptions "--bind ${params.src}:/src/,${params.outdir}"
-
-	input:
-		path(outdir)
-
-	output:
-		path("*.seuratObj.rds"), emit: rds
-		path("*pdf"), emit: seurat_plots
-
-
-    script:
-		"""
-      	/src/seurat_cellranger_output.R \\
-		--input_dir ./${params.outname} \\
-		--out_name ${params.outname}
-		"""
-	
-}
-
 process SPATIAL_CURIO {
 	//Run Curio Trekker Pipeline to generate spatial location
 	cpus "${params.max_cpus}"
+	containerOptions "--bind ${params.src}:/src/,${params.outdir},${params.curio_trekker}:/curio/"
 	publishDir "${params.outdir}/spatial", mode: 'copy', overwrite: true
 
 	input:
-		tuple path(fq_i1),path(fq_i2),path(fq_r1),path(fq_r2)
 		path(spatial_barcode)
-		path(sc_outdir), stageAs: 'sc_outdir/*'
+		path(spatial_fq)
+		path(multiome_outdir), stageAs: 'multiome_outdir/*'
 
 	output:
 		path("*")
 
     script:
 	"""
-	sample_name="${params.outname}_rna"
-	cp \$(realpath ./sc_outdir/${params.outname}/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
+	cp \$(realpath ./multiome_outdir/${params.outname}/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
 
 	echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
-	echo "${sample_name},${sample_name},${params.date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task_cpus}" >> samplesheet.trekker.csv
+	echo "${params.outname}_rna,${params.outname}_rna,${params.date},${spatial_barcode},${fq_r1},${fq_r2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task_cpus}" >> samplesheet.trekker.csv
 
-	bash /home/rmulqueen/tools/curiotrekker-v1.1.0/nuclei_locater_toplevel.sh \\
+	bash /curio/nuclei_locater_toplevel.sh \\
 	samplesheet.trekker.csv
 	"""
 }
