@@ -149,14 +149,14 @@ process DNA_SPLIT_BAM {
     script:
 		"""
 		#make splitting barcode list from whitelist
-		zcat ${params.outname}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz | awk -F, 'OFS="\t" {print \$1,\$1}' > cell_id.tsv
+		zcat ./outs/filtered_feature_bc_matrix/barcodes.tsv.gz | awk -F, 'OFS="\t" {print \$1,\$1}' > cell_id.tsv
 
 		#split to chunks of 500 cells for i/o purposes
 		split -l 500 --numeric-suffixes cell_id.tsv cell_id.split.
 
 		#run cell splitting for each 500 chunk
 		for i in cell_id.split* ; do
-		sinto filterbarcodes --bam ${params.outname}/outs/atac_possorted_bam.bam --cells \$i -p ${task.cpus} --barcodetag "CB" --outdir ./sc_dna_bam ;
+		sinto filterbarcodes --bam ./outs/atac_possorted_bam.bam --cells \$i -p ${task.cpus} --barcodetag "CB" --outdir ./sc_dna_bam ;
 		done
 		"""
 }
