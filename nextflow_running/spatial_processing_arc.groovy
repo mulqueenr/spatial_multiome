@@ -260,7 +260,7 @@ process SPATIAL_CURIO {
 	fq2="${params.outname}_spatial_S1_L001_R2_001.fastq.gz"
 
 	echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
-	echo "${params.outname}_rna,${params.outname}_rna,${params.date},${spatial_barcode},\${fq1},\${fq2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
+	echo "${params.outname}_gex,${params.outname}_gex,${params.date},${spatial_barcode},\${fq1},\${fq2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
 
 	bash /curio/nuclei_locater_toplevel.sh \\
 	samplesheet.trekker.csv
@@ -297,8 +297,8 @@ workflow {
 	//| DNA_COPYKIT
 
 // USE RNA AND SPATIAL FOR CURIO PIPELINE
-	SPATIAL_CURIO(spatial_fq,
-					spatial_barcode,
+	SPATIAL_CURIO(spatial_barcode,
+					spatial_fq,
 					CELLRANGER_COUNT.out.multiome_outdir)
 
 }
