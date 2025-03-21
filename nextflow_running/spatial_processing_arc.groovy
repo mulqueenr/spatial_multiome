@@ -116,7 +116,7 @@ process CELLRANGER_COUNT {
 		path(gex_fq), stageAs: "gex_fq/"
 
 	output:
-		path("${params.outname}/outs/*", followLinks: true), emit: multiome_outdir
+		path("${params.outname}/outs/"), followLinks: true, emit: multiome_outdir
 
     script:
 		"""
