@@ -142,7 +142,7 @@ process DNA_SPLIT_BAM {
 	publishDir "${params.outdir}/dna/sc_dna_bam", mode: 'copy', overwrite: true 
 
 	input:
-		multiome_outdir		
+		path(multiome_outdir)
 	output:
 		path("./sc_dna_bam/*bam"), emit: bam
 
