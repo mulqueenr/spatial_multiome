@@ -58,5 +58,6 @@ nextflow ./tools/spatial_multiome/nextflow_running/spatial_processing_arc.groovy
 --rna_samplesheet ${outdir}/RNA_SimpleSampleSheet.csv \
 --outname ${outname} \
 --max_cpus 300 \
---outdir ${outdir} 
+--outdir ${outdir} \
+-resume
 ```
