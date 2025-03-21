@@ -116,9 +116,7 @@ process CELLRANGER_COUNT {
 		path(gex_fq), stageAs: "gex_fq/"
 
 	output:
-		tuple path("./${params.outname}/outs/atac_possorted_bam.bam"), path("./${params.outname}/outs/atac_possorted_bam.bam.bai"),path("./${params.outname}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz"), emit: dna_bam
-		
-		path("./*"), emit: multiome_outdir
+		path("${params.outname}/outs/*", followLinks: true), emit: multiome_outdir
 
     script:
 		"""
@@ -144,22 +142,21 @@ process DNA_SPLIT_BAM {
 	publishDir "${params.outdir}/dna/sc_dna_bam", mode: 'copy', overwrite: true 
 
 	input:
-		tuple path(dna_bam),path(dna_bam_bai),path(dna_barcodes)
-
+		multiome_outdir		
 	output:
 		path("./sc_dna_bam/*bam"), emit: bam
 
     script:
 		"""
 		#make splitting barcode list from whitelist
-		zcat ${dna_barcodes} | awk -F, 'OFS="\t" {print \$1,\$1}' > cell_id.tsv
+		zcat ${params.outname}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz | awk -F, 'OFS="\t" {print \$1,\$1}' > cell_id.tsv
 
 		#split to chunks of 500 cells for i/o purposes
 		split -l 500 --numeric-suffixes cell_id.tsv cell_id.split.
 
 		#run cell splitting for each 500 chunk
 		for i in cell_id.split* ; do
-		sinto filterbarcodes --bam ${bam} --cells \$i -p ${task.cpus} --barcodetag "CB" --outdir ./sc_dna_bam ;
+		sinto filterbarcodes --bam ${params.outname}/outs/atac_possorted_bam.bam --cells \$i -p ${task.cpus} --barcodetag "CB" --outdir ./sc_dna_bam ;
 		done
 		"""
 }
@@ -290,7 +287,7 @@ workflow {
     CELLRANGER_COUNT(dna_fq,gex_fq)
 	
 // DNA PROJECT SINGLE CELL DNA COMPLEXITY
-    CELLRANGER_COUNT.out.dna_bam \
+    CELLRANGER_COUNT.out.multiome_outdir \
 	| DNA_SPLIT_BAM \
 	| DNA_PROJECT_COMPLEXITY
 
