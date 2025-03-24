@@ -224,7 +224,7 @@ process DNA_PLOT_COMPLEXITY {
 		"""
 		cat *projected_metrics.txt > complexity.metrics.tsv
 
-		Rscript ${params.src}/projected_complexity.R 
+		Rscript ${params.src}/projected_complexity.R complexity.metrics.tsv
 		"""
 }
 
