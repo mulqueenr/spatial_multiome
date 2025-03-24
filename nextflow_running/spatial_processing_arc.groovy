@@ -267,7 +267,7 @@ process SPATIAL_CURIO {
 	publishDir "${params.outdir}/spatial", mode: 'copy', overwrite: true
 
 	input:
-		path(spatial_barcode)
+		path(spatial_barcode), stageAs: 'barcode/*'
 		path(spatial_fq), stageAs: 'spatial_fq/*'
 		path(multiome_outdir), stageAs: 'multiome_outdir/*'
 
@@ -282,6 +282,7 @@ process SPATIAL_CURIO {
 	cp -r \$(realpath ./multiome_outdir/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
 	cp \$(realpath ./spatial_fq/\${fq1}) \${fq1}
 	cp \$(realpath ./spatial_fq/\${fq2}) \${fq2}
+	cp \$(realpath ./barcode/${spatial_barcode}) ${spatial_barcode}
 
 
 	echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
