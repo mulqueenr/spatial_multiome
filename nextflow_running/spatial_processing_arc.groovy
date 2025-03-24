@@ -289,7 +289,7 @@ workflow {
 // DNA PROJECT SINGLE CELL DNA COMPLEXITY
     CELLRANGER_COUNT.out.multiome_outdir \
 	| DNA_SPLIT_BAM \
-	| buffer(1)
+	| buffer(1) \
 	| DNA_PROJECT_COMPLEXITY
 
 // DNA RUN COPYKIT
