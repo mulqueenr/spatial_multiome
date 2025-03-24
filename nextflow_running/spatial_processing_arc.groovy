@@ -207,7 +207,7 @@ process DNA_PROJECT_COMPLEXITY {
 }
 
 
-process DNA_PROJECT_COMPLEXITY {
+process DNA_PLOT_COMPLEXITY {
 	//Use downsampling of each cell to establish complexity
 	maxForks 200
 	publishDir "${params.outdir}/reports/dna/", mode: 'copy', overwrite: true , pattern: "*pdf"
