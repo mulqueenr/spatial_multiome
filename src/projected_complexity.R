@@ -62,4 +62,4 @@ ggtitle(paste0("Unique Fragments Per Cell \nPassing Filter at \nFull Saturation\
 plt<-plt1+plt2+plt3+plot_layout(widths = c(0.5,0.5,0.5))
 ggsave(plt,file="spatialDNA_library_complexity.pdf",width=20)
 
-write.table(projdat,sep="\t",colnames=T,file="spatialDNA_library_complexity_metrics.tsv")
+write.table(projdat,sep="\t",col.names=T,file="spatialDNA_library_complexity_metrics.tsv")
