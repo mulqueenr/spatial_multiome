@@ -144,7 +144,7 @@ process DNA_SPLIT_BAM {
 	input:
 		path(multiome_outdir)
 	output:
-		path("sc_dna_bam/*"), emit: bam
+		path("sc_dna_bam/*bam")
 
     script:
 		"""
