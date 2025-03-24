@@ -20,7 +20,7 @@ params.spatial_barcode = "/home/rmulqueen/tools/curiotrekker-v1.1.0/U0028_003_Be
 params.ref="/home/rmulqueen/ref/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
 params.src="/home/rmulqueen/projects/spatial_wgs/tools/spatial_multiome/src"
 params.cellranger_arc="/home/rmulqueen/tools/cellranger-arc-2.0.2/cellranger-arc"
-params.curio_trekker="/home/rmulqueen/tools/curiotrekker-v1.1.0/"
+params.curio_trekker="/home/rmulqueen/tools/curiotrekker-v1.1.0"
 
 params.max_cpus="200"
 
