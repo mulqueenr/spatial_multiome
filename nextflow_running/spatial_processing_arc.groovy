@@ -277,7 +277,7 @@ process SPATIAL_CURIO {
 
     script:
 	"""
-	cp \$(realpath ./multiome_outdir/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
+	cp -r \$(realpath ./multiome_outdir/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
 	fq1="${params.outname}_spatial_S1_L001_R1_001.fastq.gz"
 	fq2="${params.outname}_spatial_S1_L001_R2_001.fastq.gz"
 
