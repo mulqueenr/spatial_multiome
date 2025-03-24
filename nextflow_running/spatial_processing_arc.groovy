@@ -320,13 +320,13 @@ workflow {
 
 // DNA RUN COPYKIT
 	DNA_PROJECT_COMPLEXITY.out.bam_rmdup \
-	| collect \
-	| DNA_COPYKIT
+	| collect //\
+	//| DNA_COPYKIT
 
 // USE RNA AND SPATIAL FOR CURIO PIPELINE
-	//SPATIAL_CURIO(spatial_barcode,
-	//				spatial_fq,
-	//				CELLRANGER_COUNT.out.multiome_outdir)
+	SPATIAL_CURIO(spatial_barcode,
+					spatial_fq,
+					CELLRANGER_COUNT.out.multiome_outdir)
 
 }
 
