@@ -268,7 +268,7 @@ process SPATIAL_CURIO {
 
 	input:
 		path(spatial_barcode)
-		path(spatial_fq)
+		path(spatial_fq), stageAs: 'spatial_fq/*'
 		path(multiome_outdir), stageAs: 'multiome_outdir/*'
 
 	output:
@@ -276,9 +276,13 @@ process SPATIAL_CURIO {
 
     script:
 	"""
-	cp -r \$(realpath ./multiome_outdir/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
+	#must be real paths for analysis, so copying from staging into working directory
 	fq1="${params.outname}_spatial_S1_L001_R1_001.fastq.gz"
 	fq2="${params.outname}_spatial_S1_L001_R2_001.fastq.gz"
+	cp -r \$(realpath ./multiome_outdir/outs/filtered_feature_bc_matrix) ./filtered_feature_bc_matrix 
+	cp \$(realpath ./spatial_fq/\${fq1}) \${fq1}
+	cp \$(realpath ./spatial_fq/\${fq2}) \${fq2}
+
 
 	echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
 	echo "${params.outname}_gex,${params.outname}_gex,${params.date},${spatial_barcode},\${fq1},\${fq2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
