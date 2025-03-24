@@ -163,7 +163,7 @@ process DNA_SPLIT_BAM {
 
 
 process DNA_PROJECT_COMPLEXITY {
-	//Use picard tools to project library complexity
+	//Use downsampling of each cell to establish complexity
 	maxForks 200
 	publishDir "${params.outdir}/dna/sc_bam_dedup", mode: 'copy', overwrite: true, pattern: "*bbrd.bam"
 	publishDir "${params.outdir}/reports/dna/complexity", mode: 'copy', overwrite: true , pattern: "*.projected_metrics.txt"
@@ -203,6 +203,28 @@ process DNA_PROJECT_COMPLEXITY {
 		#not primary alignment (0x100)
 		#read is PCR or optical duplicate (0x400)
 		#supplementary alignment (0x800)
+		"""
+}
+
+
+process DNA_PROJECT_COMPLEXITY {
+	//Use downsampling of each cell to establish complexity
+	maxForks 200
+	publishDir "${params.outdir}/reports/dna/", mode: 'copy', overwrite: true , pattern: "*pdf"
+	publishDir "${params.outdir}/reports/dna/", mode: 'copy', overwrite: true , pattern: "*tsv"
+
+	input:
+		path(compl)
+
+	output:
+		path("*pdf"), emit: complexity_plot
+		path("*tsv"), emit: complexity_summed_metrics
+
+    script:
+		"""
+		cat *projected_metrics.txt > complexity.metrics.tsv
+
+		Rscript ${params.src}/projected_complexity.R 
 		"""
 }
 
@@ -291,6 +313,10 @@ workflow {
 	| DNA_SPLIT_BAM \
 	| flatten \
 	| DNA_PROJECT_COMPLEXITY
+
+	DNA_PROJECT_COMPLEXITY.out.complexity_metrics \
+	| collect \
+	| DNA_PLOT_COMPLEXITY
 
 // DNA RUN COPYKIT
 	DNA_PROJECT_COMPLEXITY.out.bam_rmdup \
