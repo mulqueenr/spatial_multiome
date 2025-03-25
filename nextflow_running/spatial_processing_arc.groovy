@@ -286,7 +286,7 @@ process SPATIAL_CURIO {
 
 
 	echo 'sample,sc_sample,experiment_date,barcode_file,fastq_1,fastq_2,sc_outdir,sc_platform,profile,subsample,cores' > samplesheet.trekker.csv
-	echo "${params.outname}_gex,\${PWD}/${params.outname}_gex,${params.date},${spatial_barcode.simpleName}.txt,\${PWD}/\${fq1},\${PWD}/\${fq2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
+	echo "${params.outname}_gex,${params.outname}_gex,${params.date},${spatial_barcode.simpleName}.txt,\${PWD}/\${fq1},\${PWD}/\${fq2},\${PWD}/filtered_feature_bc_matrix,TrekkerU_C,singularity,no,${task.cpus}" >> samplesheet.trekker.csv
 
 	bash ${params.curio_trekker}/nuclei_locater_toplevel.sh \\
 	samplesheet.trekker.csv
